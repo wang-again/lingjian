@@ -1,0 +1,22 @@
+灵笺标志：纸笺 / 笔尖 / 灵光
+
+深青墨色 #163F42：书写与文档工作的沉静感。
+暖金色 #D6B16D：AI 带来的灵感提示。
+纸白与浅青折角：文档载体与层次。
+
+lingjian-mark.svg：彩色纯路径矢量图，放大不失真。
+lingjian-mark-mono.svg：黑白版纯路径矢量图。
+lingjian-wordmark.svg：图形与“灵笺”文字组合；文字保留为文本，需 Microsoft YaHei 或其他支持中文的后备字体，未转曲。
+lingjian-mark-64.png / 256.png / 1024.png：带透明外边缘的彩色 PNG。
+lingjian-mark-mono-1024.png：单色 PNG。
+lingjian.ico：16/24/32/48/64 像素浏览器图标。
+preview.html：本地设计说明与尺寸展示。
+preview.jpg：设计预览图。
+
+项目内：public/icon.svg 同时提供浏览器图标和 #brand 符号。
+登录页、工作区侧栏均使用 #brand，其他功能图标保持原有符号 ID。
+页面仍以黑白灰为主，彩色用于品牌标志和文件类型标识。
+
+源文件即最终版：`public/icon.svg`、`public/themes.css` 与 `public/styles.css` 已包含品牌标识与两套主题，无需再叠加历史更新包。
+静态文件更新无需服务重启；刷新页面后生效。浏览器图标如仍显示旧版，可关闭页面标签后重新打开。
+此设计尚未进行商标近似检索。

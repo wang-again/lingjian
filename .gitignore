@@ -1,0 +1,47 @@
+# 本地运行数据与密钥（绝不入库）
+.data/
+.data-restored/
+workspace-backup/
+workspace-backup-*/
+workspace-backup*.zip
+keys.json
+accounts.json
+workspace.json
+*.bak
+灵笺文档备份*.json
+灵笺导入前备份*.json
+灵笺恢复草稿*.json
+lingjian-before-restore*.json
+# 只忽略运行时锁文件。不要写成 *.lock：requirements-office.lock 必须入库，
+# 否则别人克隆后 npm run doctor 找不到锁定版本。
+.service.lock
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 依赖与虚拟环境
+node_modules/
+.venv-office/
+/.vendor/
+/vendor/office-tool/
+__pycache__/
+*.pyc
+
+# 测试与验收产物
+test-results/
+*.log
+
+# 开发过程记录（含内部实现决策，不对外）
+.workbuddy/
+/docs/technical-review.md
+/design/lingjian-logo/workspace.jpg
+
+# 操作系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp

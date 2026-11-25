@@ -1,0 +1,639 @@
+[
+  {
+    "id": "business-budget",
+    "category": "财务表格",
+    "title": "年度经营预算表",
+    "subtitle": "按月规划收入、成本与经营结余",
+    "language": "英文原版",
+    "description": "澳大利亚 business.gov.au 提供的经营预算工作簿，适合小团队制定年度收支计划。保留原有工作表、公式和填写说明。",
+    "sections": [
+      "使用说明",
+      "经营收入",
+      "固定与变动成本",
+      "月度预算",
+      "年度汇总"
+    ],
+    "rules": "先确认年度、币种和税费口径。保留公式与月度结构，仅在输入单元格填写真实数据；没有依据的金额留空并说明假设。",
+    "usage": [
+      "先读工作簿中的说明，再填写公司名称与预算期间。",
+      "收入和费用统一币种及含税口径；澳大利亚税费分类应按自身业务调整。",
+      "交给 AI 时提供月份、收入、成本明细，并要求保留原有公式。"
+    ],
+    "source": {
+      "name": "business.gov.au",
+      "url": "https://business.gov.au/finance/financial-tools-and-templates/create-a-budget",
+      "license": "CC BY 3.0 AU",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/au/",
+      "policyUrl": "https://business.gov.au/legal-notices/copyright",
+      "attribution": "© Commonwealth of Australia 2020",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "workbook",
+        "label": "预算工作簿",
+        "format": "XLSX",
+        "sourceUrl": "https://business.gov.au/-/media/business-information/templates-and-tools/budget-template.xlsx?hash=3273ED2BF6AED2C066321E7FC58FA6B5&sc_lang=en",
+        "upstreamSha256": "46fadfcebb08909fe30a5a077382541fa7526e134e556eab93f9091ed14b6c13",
+        "file": "business-budget-workbook.xlsx",
+        "size": 57573,
+        "sha256": "46fadfcebb08909fe30a5a077382541fa7526e134e556eab93f9091ed14b6c13"
+      }
+    ]
+  },
+  {
+    "id": "cash-flow",
+    "category": "财务表格",
+    "title": "月度现金流预测表",
+    "subtitle": "联动期初余额、流入、流出与期末余额",
+    "language": "英文原版",
+    "description": "business.gov.au 的现金流工作簿，适合预测未来月份的收付款和资金缺口，包含使用指引和现金流明细。",
+    "sections": [
+      "使用说明",
+      "期初余额",
+      "现金流入",
+      "现金流出",
+      "月度净额与期末余额"
+    ],
+    "rules": "现金流按实际收付款时间归属，不能用利润替代。区分实际与预测，保留余额结转公式，并统一币种和税费口径。",
+    "usage": [
+      "设置期间和第一月的银行期初余额。",
+      "按实际回款和付款月份填写，不按开票月份直接计算。",
+      "检查后一个月期初是否承接上月期末，保留公式。"
+    ],
+    "source": {
+      "name": "business.gov.au",
+      "url": "https://business.gov.au/finance/cash-flow/set-up-a-cash-flow-statement",
+      "license": "CC BY 3.0 AU",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/au/",
+      "policyUrl": "https://business.gov.au/legal-notices/copyright",
+      "attribution": "© Commonwealth of Australia 2020",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "workbook",
+        "label": "现金流工作簿",
+        "format": "XLSX",
+        "sourceUrl": "https://business.gov.au/-/media/business-information/templates-and-tools/cash-flow-statement-template.xlsx?hash=C6570E008ED264B81F16605FEDD24110&sc_lang=en",
+        "upstreamSha256": "944dd313fcbf0cdcc9f8b6782227d23907bcf58f64f7c9e12bf4a0ab095b9ff7",
+        "file": "cash-flow-workbook.xlsx",
+        "size": 45493,
+        "sha256": "944dd313fcbf0cdcc9f8b6782227d23907bcf58f64f7c9e12bf4a0ab095b9ff7"
+      }
+    ]
+  },
+  {
+    "id": "investment-appraisal",
+    "category": "财务表格",
+    "title": "项目投资方案比较表",
+    "subtitle": "用统一表格比较成本、效益与风险",
+    "language": "英文原版",
+    "description": "英国财政部 Green Book 2026 评估汇总表，用于比较项目备选方案、成本效益及价值判断。适合有一定评估基础的立项团队。",
+    "sections": [
+      "候选方案",
+      "成本与效益",
+      "价值评估",
+      "风险与不确定性",
+      "方案比较"
+    ],
+    "rules": "比较方案须使用相同期间和口径。区分货币化效益与定性影响；政策参数须根据项目适用环境确认，不直接套用英国折现或税费参数。",
+    "usage": [
+      "先统一评价期间、成本口径和方案边界。",
+      "按工作表逐项记录方案的成本、效益及不确定性。",
+      "将判断依据与数字来源一并保存，用于评审沟通。"
+    ],
+    "source": {
+      "name": "HM Treasury",
+      "url": "https://www.gov.uk/government/publications/the-green-book-templates-and-support-material",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.gov.uk/help/reuse-govuk-content",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: HM Treasury.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "workbook",
+        "label": "2026 方案评估汇总表",
+        "format": "XLSX",
+        "sourceUrl": "https://assets.publishing.service.gov.uk/media/69833911f13d4f72241ca9c6/Appraisal_Summary_Tables_Templates.xlsx",
+        "upstreamSha256": "8c871e840c583577a8b617e4b244298dbdb08cc32233ec88b2916c2cba1601ad",
+        "file": "investment-appraisal-workbook.xlsx",
+        "size": 53133,
+        "sha256": "8c871e840c583577a8b617e4b244298dbdb08cc32233ec88b2916c2cba1601ad"
+      }
+    ]
+  },
+  {
+    "id": "business-justification",
+    "category": "商务办公",
+    "title": "项目立项论证书",
+    "subtitle": "战略、经济、商业、财务与管理五个维度",
+    "language": "英文原版",
+    "description": "英国财政部中等成本及风险项目论证模板。原文件含填写提示，适用于组织立项依据、方案比较、资金与实施安排。",
+    "sections": [
+      "战略依据",
+      "经济分析",
+      "商业安排",
+      "财务安排",
+      "管理与实施"
+    ],
+    "rules": "保留五个论证维度，明确基准方案及替代方案。资金和收益必须说明计算依据；缺失的审批要求标记待确认。",
+    "usage": [
+      "先明确项目问题、决策事项和基准方案。",
+      "用证据填写五个论证维度，按本组织要求调整审批字段。",
+      "配合项目评审核对清单逐项检查后再送审。"
+    ],
+    "source": {
+      "name": "HM Treasury",
+      "url": "https://www.gov.uk/government/publications/the-green-book-templates-and-support-material",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.gov.uk/help/reuse-govuk-content",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: HM Treasury.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "document",
+        "label": "立项论证原版",
+        "format": "DOCX",
+        "sourceUrl": "https://assets.publishing.service.gov.uk/media/5fb25ef8e90e0709e7e68fa0/Template_for_medium-cost-risk_business-justification-case.docx",
+        "upstreamSha256": "f7bac392662a0a50a7499c36d9b474afaacad0d95ad862959bb531a30a2fa35c",
+        "file": "business-justification-document.docx",
+        "size": 40696,
+        "sha256": "1f5b302df228157566066100b7ffdbf65c52be66d517d28c39cf8f8ad53ed7f9"
+      }
+    ]
+  },
+  {
+    "id": "business-case-checklist",
+    "category": "项目管理",
+    "title": "项目立项评审核对清单",
+    "subtitle": "两页检查论证是否完整、证据是否充分",
+    "language": "英文原版",
+    "description": "英国财政部业务论证评审清单，适合立项自查或评审会议逐项核对。PDF 为打印核对清单，不是交互式表单。",
+    "sections": [
+      "战略依据检查",
+      "方案与效益检查",
+      "采购与商业检查",
+      "资金与可负担性",
+      "交付管理检查"
+    ],
+    "rules": "逐项关联实际材料、证据位置和未解决问题。未核实内容不能标成通过；使用本组织适用的评审标准。",
+    "usage": [
+      "准备待评审的项目论证书及附件。",
+      "下载 PDF 打印核对，或加入文件库让 AI 按清单检查材料。",
+      "把未通过的项目整理为补充材料清单，注明负责人。"
+    ],
+    "source": {
+      "name": "HM Treasury",
+      "url": "https://www.gov.uk/government/publications/the-green-book-templates-and-support-material",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.gov.uk/help/reuse-govuk-content",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: HM Treasury.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "checklist",
+        "label": "两页打印清单",
+        "format": "PDF",
+        "sourceUrl": "https://assets.publishing.service.gov.uk/media/626a9a508fa8f57a3b41bc04/Business_Case_Reviewers_Checklist.pdf",
+        "upstreamSha256": "9765eb0376bfc695d9098eee133cefc51b5c39be18597311d3c0a08aec6a49ad",
+        "file": "business-case-checklist-checklist.pdf",
+        "size": 75107,
+        "sha256": "9765eb0376bfc695d9098eee133cefc51b5c39be18597311d3c0a08aec6a49ad"
+      }
+    ]
+  },
+  {
+    "id": "workplace-risk",
+    "category": "日常协作",
+    "title": "工作场所风险评估记录",
+    "subtitle": "空白记录表搭配办公室填写示例",
+    "language": "英文原版",
+    "description": "英国 HSE 发布的 Word 风险记录表，以及五页办公室风险评估示例 PDF。记录危险、受影响人员、现有措施、后续行动和复查安排。",
+    "sections": [
+      "公司与评估信息",
+      "危险与受影响人员",
+      "现有控制措施",
+      "后续行动与责任人",
+      "完成期限与复查"
+    ],
+    "rules": "风险和控制措施必须结合实际场所确认。示例只用于理解填写方法，不能代替现场评估；法规要求按实际适用地区确认。",
+    "usage": [
+      "先看 PDF 示例，理解风险与控制措施如何对应。",
+      "用 DOCX 空白表记录本场所的具体危险和受影响人员。",
+      "为每项补充措施填写负责人、截止日期与复查日期。"
+    ],
+    "source": {
+      "name": "Health and Safety Executive",
+      "url": "https://www.hse.gov.uk/simple-health-safety/risk/risk-assessment-template-and-examples.htm",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.hse.gov.uk/help/copyright.htm",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: Health and Safety Executive.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "document",
+        "label": "风险评估空白表",
+        "format": "DOCX",
+        "sourceUrl": "https://www.hse.gov.uk/simple-health-safety/assets/docs/risk-assessment-template-2019.docx",
+        "upstreamSha256": "ac929ac15554dec04b8961f6d45eaec9b3014aee9b237f8fcce1f69b83e3c7d4",
+        "file": "workplace-risk-document.docx",
+        "size": 659197,
+        "sha256": "882003c62de4fa49e464b54ca8ce779994c0c7e989cee1a7abb659cfe190d861"
+      },
+      {
+        "id": "example",
+        "label": "办公室填写示例（5 页）",
+        "format": "PDF",
+        "role": "example",
+        "sourceUrl": "https://www.hse.gov.uk/simple-health-safety/assets/docs/office.pdf",
+        "upstreamSha256": "2bc2bafaee609c37cab59bdb892136fc48013ab7c7eb1902fbb0dad5e8601ae1",
+        "file": "workplace-risk-example.pdf",
+        "size": 765829,
+        "sha256": "2bc2bafaee609c37cab59bdb892136fc48013ab7c7eb1902fbb0dad5e8601ae1"
+      }
+    ]
+  },
+  {
+    "id": "project-brief",
+    "category": "项目管理",
+    "title": "项目简报与启动说明",
+    "subtitle": "用一份简报对齐目标、范围和责任",
+    "language": "英文原版",
+    "description": "北爱尔兰财政部项目简报模板，包含起草说明、项目背景、预期成果及责任安排，适合项目启动前沟通。原生旧版 DOC 文件。",
+    "sections": [
+      "项目背景",
+      "目标与预期成果",
+      "范围与约束",
+      "组织与责任",
+      "初步计划"
+    ],
+    "rules": "启动前应确认项目目标和责任边界。区分已批准事项与建议方案；保留版本与批准记录。",
+    "usage": [
+      "在 Word、WPS 或 LibreOffice 中打开 DOC 原件。",
+      "按起草说明填写背景、范围、成果与责任。",
+      "需要在平台由 AI 处理时，先另存为 DOCX 后上传。"
+    ],
+    "source": {
+      "name": "Department of Finance NI",
+      "url": "https://www.finance-ni.gov.uk/publications/project-management-templates",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.finance-ni.gov.uk/articles/crown-copyright-finance",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: Department of Finance, Northern Ireland.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "document",
+        "label": "项目简报原版",
+        "format": "DOC",
+        "sourceUrl": "https://www.finance-ni.gov.uk/sites/default/files/publications/dfp/Programme%20and%20project%20management%20templates%20-%20Project%20brief.DOC",
+        "upstreamSha256": "8d7e274e0e7e72c185726403f945af82ede59b170e64c1d9ce0a7114c8c7dbc5",
+        "file": "project-brief-document.doc",
+        "size": 64000,
+        "sha256": "8d7e274e0e7e72c185726403f945af82ede59b170e64c1d9ce0a7114c8c7dbc5"
+      }
+    ]
+  },
+  {
+    "id": "project-initiation",
+    "category": "项目管理",
+    "title": "项目启动文件 PID",
+    "subtitle": "组织范围、交付、治理、质量与风险基线",
+    "language": "英文原版",
+    "description": "北爱尔兰财政部完整 PID 模板，适合有多个参与方的正式项目，包含比项目简报更细的计划及治理安排。原生旧版 DOC 文件。",
+    "sections": [
+      "项目定义",
+      "交付与范围",
+      "组织与治理",
+      "计划与资源",
+      "风险质量与沟通"
+    ],
+    "rules": "PID 作为项目基线记录范围、计划和治理。日期、预算及负责人须来自已确认材料，变更应单独记录。",
+    "usage": [
+      "先在 Office 软件中打开原始 DOC，阅读每节提示。",
+      "确认项目基线和审批职责，再补充计划、质量和沟通安排。",
+      "平台处理需先另存为 DOCX；也可使用下方中文提纲开始起草。"
+    ],
+    "source": {
+      "name": "Department of Finance NI",
+      "url": "https://www.finance-ni.gov.uk/publications/project-management-templates",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.finance-ni.gov.uk/articles/crown-copyright-finance",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: Department of Finance, Northern Ireland.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "document",
+        "label": "完整启动文件",
+        "format": "DOC",
+        "sourceUrl": "https://www.finance-ni.gov.uk/sites/default/files/publications/dfp/Programme%20and%20project%20management%20templates%20-%20Project%20initiation%20document%201.DOC",
+        "upstreamSha256": "bcf8d90e8c0a7fdd6885d6318247fa5daefc395ef2979bbf599ddd2b4c11de3c",
+        "file": "project-initiation-document.doc",
+        "size": 283648,
+        "sha256": "bcf8d90e8c0a7fdd6885d6318247fa5daefc395ef2979bbf599ddd2b4c11de3c"
+      }
+    ]
+  },
+  {
+    "id": "post-project-review",
+    "category": "项目管理",
+    "title": "项目结项与成效复盘",
+    "subtitle": "对比立项目标、实际交付和后续成效",
+    "language": "英文原版",
+    "description": "北爱尔兰财政部项目完成后评审模板，用于检查目标实现、收益兑现和可迁移的经验。原生旧版 DOC 文件。",
+    "sections": [
+      "评审背景",
+      "目标与成果对比",
+      "收益实现",
+      "问题与经验",
+      "后续行动"
+    ],
+    "rules": "用已批准目标与实际证据进行对比。尚未实现的收益应单独列示；经验应对应明确行动和责任人。",
+    "usage": [
+      "收集原立项文件、交付记录和实际成本数据。",
+      "按目标、成果、收益逐项对比，记录偏差原因。",
+      "需要平台填写原表时先将 DOC 另存为 DOCX 上传。"
+    ],
+    "source": {
+      "name": "Department of Finance NI",
+      "url": "https://www.finance-ni.gov.uk/publications/project-management-templates",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.finance-ni.gov.uk/articles/crown-copyright-finance",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: Department of Finance, Northern Ireland.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "document",
+        "label": "项目后评审原版",
+        "format": "DOC",
+        "sourceUrl": "https://www.finance-ni.gov.uk/sites/default/files/publications/dfp/Programme%20and%20project%20management%20templates%20-%20Post%20project%20review.DOC",
+        "upstreamSha256": "781cc4355a76ce8c2a9d02078a806f84bb8fade0ab4ced341f3331791ee87053",
+        "file": "post-project-review-document.doc",
+        "size": 73728,
+        "sha256": "781cc4355a76ce8c2a9d02078a806f84bb8fade0ab4ced341f3331791ee87053"
+      }
+    ]
+  },
+  {
+    "id": "change-request",
+    "category": "项目管理",
+    "title": "项目变更申请单",
+    "subtitle": "记录变更原因、影响评估与审批决定",
+    "language": "英文原版",
+    "description": "北爱尔兰财政部变更请求模板，适合范围、工期、预算或交付物变更时留存审批依据。原生旧版 DOC 文件。",
+    "sections": [
+      "变更编号与提出人",
+      "变更内容",
+      "原因与备选方案",
+      "范围进度成本影响",
+      "审批与落实"
+    ],
+    "rules": "变更申请与批准结果必须分开。写清原基线、建议改动和影响；未经确认不得填写已批准或承诺日期。",
+    "usage": [
+      "填写变更编号、提出日期、原基线与建议改动。",
+      "同时评估成本、进度、质量和风险影响。",
+      "在 Office 软件完成审批字段；平台处理前另存为 DOCX。"
+    ],
+    "source": {
+      "name": "Department of Finance NI",
+      "url": "https://www.finance-ni.gov.uk/publications/templates-programmes-or-projects",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.finance-ni.gov.uk/articles/crown-copyright-finance",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: Department of Finance, Northern Ireland.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "document",
+        "label": "变更申请原版",
+        "format": "DOC",
+        "sourceUrl": "https://www.finance-ni.gov.uk/sites/default/files/publications/dfp/Programme%20and%20project%20management%20templates%20-%20request%20for%20change.DOC",
+        "upstreamSha256": "b9150f2fecd29f9344e39dc4d59fb14febd8e347d0926970e2bbb364bb717b2f",
+        "file": "change-request-document.doc",
+        "size": 66048,
+        "sha256": "b9150f2fecd29f9344e39dc4d59fb14febd8e347d0926970e2bbb364bb717b2f"
+      }
+    ]
+  },
+  {
+    "id": "benefits-tracker",
+    "category": "财务表格",
+    "title": "小项目收益跟踪表",
+    "subtitle": "明确收益、责任、基线和实现时间",
+    "language": "英文原版",
+    "description": "北爱尔兰财政部小项目收益档案工作表，适合记录预期收益并持续跟踪实现情况。原生旧版 XLS 文件，供 Office 软件使用。",
+    "sections": [
+      "收益描述",
+      "衡量指标",
+      "责任人",
+      "基线与目标",
+      "实现与复查"
+    ],
+    "rules": "区分预期收益和已实现收益，保留衡量基线、指标与责任人。未证实的收益不得计为实际成果。",
+    "usage": [
+      "在 Excel 或 WPS 打开 XLS 并阅读字段说明。",
+      "为每项收益设定基线、目标、责任人与复查时间。",
+      "需要平台处理时，先另存为 XLSX 后上传。"
+    ],
+    "source": {
+      "name": "Department of Finance NI",
+      "url": "https://www.finance-ni.gov.uk/publications/templates-benefits-management-programmes-or-projects",
+      "license": "OGL v3.0",
+      "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+      "policyUrl": "https://www.finance-ni.gov.uk/articles/crown-copyright-finance",
+      "attribution": "Contains public sector information licensed under the Open Government Licence v3.0. Source: Department of Finance, Northern Ireland.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "workbook",
+        "label": "收益档案原版",
+        "format": "XLS",
+        "sourceUrl": "https://www.finance-ni.gov.uk/sites/default/files/publications/dfp/programme-project-management-templates-benefits-profile-small-projects.xls",
+        "upstreamSha256": "9a656773a3307684e8fae96f62632835f850c658561c63ffd350f4bf4a00fa7f",
+        "file": "benefits-tracker-workbook.xls",
+        "size": 25088,
+        "sha256": "9a656773a3307684e8fae96f62632835f850c658561c63ffd350f4bf4a00fa7f"
+      }
+    ]
+  },
+  {
+    "id": "oss-readme",
+    "category": "产品技术",
+    "title": "开源项目 README",
+    "subtitle": "安装、快速开始、配置、测试与贡献说明",
+    "language": "英文原版",
+    "description": "Fokuus 的纯 Markdown 项目介绍模板，适合代码仓库说明，原版结构可直接编辑。文件末尾附完整 MIT 许可。",
+    "sections": [
+      "项目介绍",
+      "安装与使用",
+      "配置",
+      "开发与测试",
+      "贡献与许可"
+    ],
+    "rules": "命令、依赖及配置必须与实际项目一致，不编造安装命令或功能。删除不适用的示例并保留来源许可。",
+    "usage": [
+      "在编辑器打开原版 Markdown，按实际项目替换示例。",
+      "逐条运行安装、启动与测试命令后再发布。",
+      "下载 MD 可直接放入仓库，并保留附带的 MIT 许可。"
+    ],
+    "source": {
+      "name": "Fokuus / markdown-templates",
+      "url": "https://github.com/Fokuus/markdown-templates",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/Fokuus/markdown-templates/blob/main/LICENSE",
+      "attribution": "Copyright (c) 2026 Anton Pycarelle (Fokuus)",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "README Markdown",
+        "format": "MD",
+        "sourceUrl": "https://raw.githubusercontent.com/Fokuus/markdown-templates/main/templates/readme-template.md",
+        "upstreamSha256": "6966dbe9ea602ff871434e709722a2cf041d52c5d4adf526efcf5adc6034df2a",
+        "file": "oss-readme-markdown.md",
+        "size": 1769,
+        "sha256": "2a521cf9711ed94502464184cfb285993873de8acecf0a308c0bed6381b80081"
+      }
+    ]
+  },
+  {
+    "id": "oss-meeting-notes",
+    "category": "日常协作",
+    "title": "会议议程与行动记录",
+    "subtitle": "按议程记录讨论、决定和后续行动",
+    "language": "英文原版",
+    "description": "Fokuus 的 Markdown 会议记录，适合团队周会与项目沟通；结构包括会议目标、讨论和行动事项。文件末尾附完整 MIT 许可。",
+    "sections": [
+      "会议信息",
+      "议程",
+      "讨论记录",
+      "决策",
+      "行动与后续"
+    ],
+    "rules": "分清讨论与确认决策，行动项要有责任人与截止时间；缺失信息标注待确认。",
+    "usage": [
+      "会前填写议程和需要做出的决定。",
+      "会中记录已确认决策，行动项补齐负责人和期限。",
+      "会后复查未解决事项；替换示例而非保留虚构记录。"
+    ],
+    "source": {
+      "name": "Fokuus / markdown-templates",
+      "url": "https://github.com/Fokuus/markdown-templates",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/Fokuus/markdown-templates/blob/main/LICENSE",
+      "attribution": "Copyright (c) 2026 Anton Pycarelle (Fokuus)",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "会议记录 Markdown",
+        "format": "MD",
+        "sourceUrl": "https://raw.githubusercontent.com/Fokuus/markdown-templates/main/templates/meeting-notes.md",
+        "upstreamSha256": "3ac405d76c283a466c2eb301ea3cb1dc31f0dd21009d02439b4cf1ea75be1031",
+        "file": "oss-meeting-notes-markdown.md",
+        "size": 1628,
+        "sha256": "b35f26c3b7059beed919300f480786b00f986bd4d3042b81d0509f314f3b78be"
+      }
+    ]
+  },
+  {
+    "id": "oss-technical-spec",
+    "category": "产品技术",
+    "title": "技术方案设计说明",
+    "subtitle": "需求、架构、接口与验证计划",
+    "language": "英文原版",
+    "description": "Fokuus 技术规范 Markdown 模板，包含表格、公式与 Mermaid 图示例，适合作为技术评审文档起点。复杂图与公式应在支持相应语法的编辑器中查看。",
+    "sections": [
+      "问题与目标",
+      "设计方案",
+      "数据与接口",
+      "实现计划",
+      "测试与风险"
+    ],
+    "rules": "明确设计约束、方案取舍和验证方式。示例接口、公式及图必须替换为实际设计，不能把模板内容当作事实。",
+    "usage": [
+      "按实际设计替换示例参数、接口和图。",
+      "平台编辑器仅作文字编辑；Mermaid 与数学公式请在相应 Markdown 工具中预览。",
+      "评审时重点检查方案边界、异常路径和验证计划。"
+    ],
+    "source": {
+      "name": "Fokuus / markdown-templates",
+      "url": "https://github.com/Fokuus/markdown-templates",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/Fokuus/markdown-templates/blob/main/LICENSE",
+      "attribution": "Copyright (c) 2026 Anton Pycarelle (Fokuus)",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "技术说明 Markdown",
+        "format": "MD",
+        "sourceUrl": "https://raw.githubusercontent.com/Fokuus/markdown-templates/main/templates/technical-spec.md",
+        "upstreamSha256": "1db333c0f555ad24c08ba33e99094e2d536092b4d9de0b8ee4a187f8effb501b",
+        "file": "oss-technical-spec-markdown.md",
+        "size": 2291,
+        "sha256": "47f1b7f3f799190b7533cd65342f69eed8de0f1f585b2dd6d034b2bc502d9db5"
+      }
+    ]
+  },
+  {
+    "id": "oss-resume",
+    "category": "求职简历",
+    "title": "一页式个人简历",
+    "subtitle": "精简展示经历、成果、技能与教育背景",
+    "language": "英文原版",
+    "description": "Fokuus 一页简历 Markdown 模板，适合技术与知识工作岗位。可编辑原版后在外部 Markdown 排版工具中打印。文件末尾附完整 MIT 许可。",
+    "sections": [
+      "联系信息",
+      "个人概述",
+      "工作经历",
+      "项目与技能",
+      "教育背景"
+    ],
+    "rules": "只填写真实经历，成果数字须有依据。按目标岗位筛选经历，不虚构学历、职位、证书或推荐人。",
+    "usage": [
+      "先替换联系信息并删除不需要公开的个人资料。",
+      "每段经历写明实际职责与可验证成果。",
+      "导出前检查一页排版；平台不保证 Markdown 原版在 Word 中仍为一页。"
+    ],
+    "source": {
+      "name": "Fokuus / markdown-templates",
+      "url": "https://github.com/Fokuus/markdown-templates",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/Fokuus/markdown-templates/blob/main/LICENSE",
+      "attribution": "Copyright (c) 2026 Anton Pycarelle (Fokuus)",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "简历 Markdown",
+        "format": "MD",
+        "sourceUrl": "https://raw.githubusercontent.com/Fokuus/markdown-templates/main/templates/cv-resume.md",
+        "upstreamSha256": "1ba871a4fd3cc5d9bb6645034839e2c9fac257c05e8ff303e83d6f058740c40d",
+        "file": "oss-resume-markdown.md",
+        "size": 1816,
+        "sha256": "0def741d8bb32d8ba4407f001c3228f9a1607cd4d5c1052a53246c7e2634b46a"
+      }
+    ]
+  }
+]

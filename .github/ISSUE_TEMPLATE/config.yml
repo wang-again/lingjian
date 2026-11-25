@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞
+    url: https://github.com/OWNER/lingjian-document-studio/security/advisories/new
+    about: 请勿在公开 Issue 中披露安全漏洞，按 SECURITY.md 私下报告。
+  - name: 使用问题
+    url: https://github.com/OWNER/lingjian-document-studio/blob/main/README.md
+    about: 先看 README 与应用内的「使用手册」，多数使用问题能在那里找到答案。

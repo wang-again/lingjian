@@ -1,0 +1,14 @@
+[hidden] { display: none !important; }
+.auth-panel { height: 100dvh; display: grid; grid-template-rows: minmax(min-content, 1fr); place-items: center; background: var(--surface-subtle, var(--surface-subtle)); padding: 24px; overflow: auto; }
+.auth-card { width: min(100%, 440px); padding: 36px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); box-shadow: none; }
+.auth-card .brand { width: fit-content; margin-bottom: 30px; }
+.auth-card h1 { font-size: 24px; margin-bottom: 12px; color: var(--ink); }
+.auth-card p { color: var(--muted); font-size: 14px; line-height: 1.8; }
+.auth-card label { display: block; font-size: 14px; margin-top: 22px; color: var(--ink); }
+.auth-card input { display: block; width: 100%; margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: var(--surface); }
+.auth-card input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.auth-card button { margin-top: 20px; }
+.auth-card .auth-error { color: var(--ink); border-left: 3px solid var(--ink); padding-left: 10px; margin-top: 18px; }
+.account-menu { display: flex; gap: 8px; align-items: center; padding: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.account-menu span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu button { background: transparent; color: var(--accent); padding: 6px; white-space: nowrap; }

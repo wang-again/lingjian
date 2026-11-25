@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="灵笺，支持自配 API 的本地 AI 文档工作台。">
+  <script src="/theme.js"></script>
+  <title>灵笺 · 文档工作台</title><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/office.css"><link rel="stylesheet" href="/auth.css"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/themes.css">
+</head>
+<body>
+  <main id="auth-panel" class="auth-panel" hidden>
+    <form id="auth-form" class="auth-card">
+      <div class="auth-appearance"><label class="language-picker"><span>界面语言</span><select data-language-picker><option value="zh-CN" lang="zh-CN">中文</option><option value="en" lang="en">English</option></select></label><label class="theme-picker"><svg aria-hidden="true"><use href="/icon.svg#appearance"/></svg><select data-theme-picker aria-label="界面外观"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></label></div>
+      <a class="brand" href="/"><span class="brand-mark"><svg aria-hidden="true"><use href="/icon.svg#brand"/></svg></span><strong>灵笺</strong></a>
+      <h1 id="auth-title">登录你的工作空间</h1><p>文档、文件与模型配置按账号独立保存。</p>
+      <label>用户名<input id="auth-username" name="username" autocomplete="username" minlength="3" maxlength="40" required></label>
+      <label>密码<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
+      <p class="field-help">密码至少 12 个字符。请勿使用模型 API Key 作为密码。</p>
+      <label id="auth-invite-field" hidden>邀请码<input id="auth-invite" name="inviteCode" type="password" autocomplete="off" maxlength="200"></label>
+      <p id="auth-error" class="auth-error" role="alert" hidden></p>
+      <button id="auth-submit" class="primary full-width" type="submit">登录</button>
+      <button id="auth-toggle" type="button" class="text-button" hidden>还没有账号？注册</button>
+      <p class="field-help">密钥默认仅在当前登录会话内有效；退出或会话过期后清除。</p>
+    </form>
+  </main>
+  <div class="app-shell" id="workspace-shell" hidden>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/" aria-label="灵笺首页"><span class="brand-mark"><svg aria-hidden="true"><use href="/icon.svg#brand"/></svg></span><span><strong>灵笺</strong></span></a>
+      <button class="icon-button sidebar-close" id="sidebar-close" type="button" aria-label="收起侧栏" title="收起侧栏"><svg aria-hidden="true"><use href="/icon.svg#close"/></svg></button>
+      <button class="new-document primary" id="new-document"><svg><use href="/icon.svg#plus"/></svg>新建文档<span>＋</span></button>
+      <nav class="main-nav" aria-label="主导航">
+        <button data-view="documents" class="nav-item active"><svg><use href="/icon.svg#doc"/></svg>我的文档<span id="document-count">0</span></button>
+        <button data-view="templates" class="nav-item"><svg><use href="/icon.svg#grid"/></svg>模板中心</button>
+        <button data-view="office" class="nav-item"><svg><use href="/icon.svg#folder"/></svg>文件处理</button>
+        <button data-view="settings" class="nav-item"><svg><use href="/icon.svg#settings"/></svg>模型配置</button>
+        <button data-view="manual" class="nav-item"><svg><use href="/icon.svg#doc"/></svg>使用手册</button>
+        <button data-view="admin" id="admin-nav" class="nav-item" hidden><svg><use href="/icon.svg#settings"/></svg>管理端</button>
+      </nav>
+      <details class="sidebar-section" open><summary>最近文档</summary><div class="sidebar-label sidebar-import"><button class="icon-button" id="import-document" title="导入文本、Word、Excel、PPT 或 PDF" aria-label="导入文档"><svg><use href="/icon.svg#upload"/></svg></button></div>
+      <div id="document-list" class="document-list"></div></details>
+      <details class="sidebar-section sidebar-outline"><summary>文档大纲<span id="outline-count"></span></summary><div id="outline-list"></div></details>
+      <div class="sidebar-bottom">
+        <details class="workspace-files"><summary>备份与恢复</summary>
+          <button class="text-button backup-button" id="backup-workspace"><svg><use href="/icon.svg#download"/></svg>备份全部文档</button>
+          <button class="text-button backup-button" id="import-backup">导入文档备份</button>
+          <button class="text-button backup-button" id="recover-drafts">恢复草稿</button>
+        </details>
+        <div class="workspace-appearance"><span>外观</span><label class="theme-picker"><svg aria-hidden="true"><use href="/icon.svg#appearance"/></svg><select data-theme-picker aria-label="界面外观"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></label></div>
+        <label class="workspace-appearance language-picker"><span>界面语言</span><select data-language-picker><option value="zh-CN" lang="zh-CN">中文</option><option value="en" lang="en">English</option></select></label>
+      </div>
+    </aside>
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="breadcrumbs"><button class="icon-button sidebar-toggle" id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="收起侧栏" title="收起侧栏"><svg aria-hidden="true"><use href="/icon.svg#sidebar"/></svg></button><span>个人工作空间</span><svg><use href="/icon.svg#chevron"/></svg><strong id="breadcrumb-current">我的文档</strong></div>
+        <div class="desk-actions" id="desk-actions">
+          <span id="save-status" role="status">已保存</span>
+          <button id="undo-ai-edit" class="secondary compact" hidden>撤回 AI 修改</button>
+          <button class="text-button focus-toggle" id="focus-toggle" aria-controls="assistant-panel" aria-expanded="false"><svg aria-hidden="true"><use href="/icon.svg#pen"/></svg><span>写作工具</span></button>
+          <details id="document-menu" class="document-menu">
+            <summary aria-label="文档操作" title="文档操作"><svg aria-hidden="true"><use href="/icon.svg#list"/></svg><span>文档操作</span></summary>
+            <div class="document-menu-list">
+              <button class="secondary compact" id="brief-button" title="文档简报：目的、读者、范围与资料策略"><svg><use href="/icon.svg#doc"/></svg><span>文档简报</span><span id="brief-state" class="action-badge" hidden></span></button>
+              <button class="secondary compact" id="evidence-button" title="依据台账：逐条核对正文说法与资料原文"><svg><use href="/icon.svg#list"/></svg><span>核对依据</span><span id="evidence-state" class="action-badge" hidden></span></button>
+              <button class="secondary compact" id="delivery-button" title="交付体检：结构、占位符、引用与依据覆盖"><svg><use href="/icon.svg#check"/></svg><span>交付检查</span><span id="delivery-state" class="action-badge" hidden></span></button>
+              <button class="secondary compact" id="studio-button" title="章节工作台：逐章写作、任务队列、项目资料与批量审计"><svg><use href="/icon.svg#list"/></svg><span>章节工作台</span><span id="studio-state" class="action-badge" hidden></span></button>
+              <button class="secondary compact" id="history-button" aria-label="历史版本"><svg><use href="/icon.svg#clock"/></svg><span>历史版本</span></button>
+            </div>
+          </details>
+          <button class="primary compact" id="export-button"><svg><use href="/icon.svg#download"/></svg>导出<svg class="small-icon"><use href="/icon.svg#down"/></svg></button>
+        </div>
+      </header>
+      <section id="documents-view" class="view document-view">
+        <div class="editor-workspace">
+          <div class="writing-area">
+            <div class="editor-toolbar" role="toolbar" aria-label="文字格式"><select id="format-block" aria-label="段落样式"><option value="p">正文</option><option value="h2">一级标题</option><option value="h3">二级标题</option><option value="blockquote">引用</option></select><span class="toolbar-divider"></span><button class="format-button bold" data-command="bold" title="加粗 Ctrl+B" aria-label="加粗">B</button><button class="format-button italic" data-command="italic" title="斜体 Ctrl+I" aria-label="斜体">I</button><button class="format-button underline" data-command="underline" title="下划线 Ctrl+U" aria-label="下划线">U</button><span class="toolbar-divider"></span><button class="icon-button" data-command="insertUnorderedList" title="项目列表" aria-label="项目列表"><svg><use href="/icon.svg#list"/></svg></button><button class="format-button" data-command="insertOrderedList" title="编号列表" aria-label="编号列表">1.</button><button class="icon-button" id="insert-table" title="插入表格" aria-label="插入表格"><svg><use href="/icon.svg#table"/></svg></button><button class="icon-button" id="insert-image" title="插入图片" aria-label="插入图片"><svg><use href="/icon.svg#upload"/></svg></button><span class="toolbar-divider"></span><button class="icon-button" data-command="undo" title="撤销" aria-label="撤销"><svg><use href="/icon.svg#undo"/></svg></button></div>
+            <div id="save-recovery" class="save-recovery" role="status" hidden><span id="save-recovery-message"></span><div><button id="retry-save" class="secondary compact">重试保存</button><button id="download-recovery" class="secondary compact">下载恢复草稿</button><button id="show-recovery" class="secondary compact">恢复草稿</button></div></div><p id="ai-edit-status" class="ai-edit-status" role="status" hidden></p><section id="ai-report-view" class="ai-report-view" aria-label="AI 审阅与大纲" hidden><header><h2 id="ai-report-title"></h2><button id="close-ai-report" class="secondary compact">返回正文</button></header><div id="ai-report-content" class="result-content"></div></section><section id="quality-view" class="quality-view" aria-label="文档依据与交付体检" hidden><header class="quality-heading"><div><span id="quality-eyebrow" class="quality-eyebrow"></span><h2 id="quality-title"></h2><p id="quality-subtitle" class="quality-subtitle"></p></div><div class="quality-heading-actions"><button id="quality-refresh" class="secondary compact">重新检查</button><button id="quality-close" class="secondary compact">返回正文</button></div></header><div id="quality-content" class="quality-content"></div></section><section id="studio-view" class="quality-view studio-view" aria-label="章节工作台、项目资料与批量审计" hidden><header class="quality-heading"><div><span id="studio-eyebrow" class="quality-eyebrow"></span><h2 id="studio-title"></h2><p id="studio-subtitle" class="quality-subtitle"></p></div><div class="quality-heading-actions"><button id="studio-refresh" class="secondary compact">刷新</button><button id="studio-close" class="secondary compact">返回正文</button></div></header><div class="studio-tabs" id="studio-tabs" role="tablist"><button data-studio-tab="chapters" role="tab" aria-selected="true" class="selected">章节与队列</button><button data-studio-tab="projects" role="tab" aria-selected="false">项目资料</button><button data-studio-tab="audit" role="tab" aria-selected="false">批量审计</button><button data-studio-tab="recipes" role="tab" aria-selected="false">任务配方</button></div><div id="studio-content" class="quality-content studio-content"></div></section><div class="paper-scroll" id="paper-scroll"><article class="paper"><header class="paper-heading">
+              <textarea id="document-title" class="document-title" aria-label="文档标题" maxlength="200" rows="1" placeholder="未命名文档"></textarea>
+              <h1 id="paper-title" class="print-title"></h1>
+              <span id="template-badge" hidden></span>
+            </header><div id="editor" class="editor" role="textbox" aria-label="文档正文" aria-multiline="true" contenteditable="true" spellcheck="false" data-placeholder="输入正文"></div></article></div>
+            <footer class="editor-footer"><span><span class="status-dot"></span><span id="word-count">0 字</span><span class="footer-separator">|</span><span id="reading-time">约 1 分钟阅读</span></span><span id="selection-status">A4 文档 · 自由编辑</span></footer>
+          </div>
+          <aside class="assistant-panel collapsed" id="assistant-panel"><div class="assistant-heading"><div><strong>写作工具</strong></div><button class="icon-button assistant-close" id="assistant-close" aria-label="收起写作工具" title="收起写作工具"><svg><use href="/icon.svg#close"/></svg></button></div><div class="assistant-tabs" role="tablist"><button id="writing-tab" role="tab" aria-selected="true">撰写</button><button id="sources-tab" role="tab" aria-selected="false">参考资料<span id="source-count">0</span></button></div>
+            <div id="writing-panel" class="assistant-body"><section id="fragment-card" class="fragment-card" aria-label="发给 AI 的片段" hidden><div class="fragment-heading"><strong id="fragment-label">所选片段</strong><button class="icon-button" id="remove-fragment" aria-label="移除所选片段">×</button></div><div id="fragment-preview" class="fragment-preview"></div><small>将此片段随要求发给 AI，结果仅替换此处。</small></section><div class="assistant-welcome" id="assistant-welcome"><div class="quick-prompts"><button data-quick="outline"><svg><use href="/icon.svg#list"/></svg>拟定大纲<svg><use href="/icon.svg#arrow"/></svg></button><button data-quick="write"><svg><use href="/icon.svg#pen"/></svg>按模板起草<svg><use href="/icon.svg#arrow"/></svg></button><button data-quick="review"><svg><use href="/icon.svg#check"/></svg>检查全文逻辑<svg><use href="/icon.svg#arrow"/></svg></button></div></div><div id="generation-result" class="generation-result" hidden><div id="sent-fragment" class="sent-fragment" hidden></div><div class="result-heading"><span id="result-status">生成草稿</span><button class="icon-button" id="copy-result" aria-label="复制生成结果" title="复制"><svg><use href="/icon.svg#copy"/></svg></button></div><div id="result-content" class="result-content"></div><div id="result-files" class="result-files" hidden></div><div id="result-error" class="inline-error" role="alert" hidden></div><div id="result-usage" class="result-usage"></div></div></div>
+            <div id="sources-panel" class="sources-panel" hidden><div class="source-intro"><p>支持文本、Word、Excel、PPT、PDF，每篇文档最多 20 份。勾选的资料会随任务发送给所选 API。</p></div><button class="source-upload" id="add-source"><svg><use href="/icon.svg#upload"/></svg><strong>添加参考资料</strong><span>选择文件 · 单份最多 30 万字符</span></button><div id="sources-list"></div><div class="source-note">支持文档文字提取和本地扫描件 OCR，识别结果请核对。</div></div>
+            <div class="composer" id="composer"><details class="assistant-options"><summary>写作模型</summary><div class="model-picker-wrap"><svg><use href="/icon.svg#pen"/></svg><select id="assistant-model" aria-label="选择写作模型"><option value="">请先配置模型</option></select><button class="icon-button" id="composer-settings" aria-label="管理模型" title="管理模型"><svg><use href="/icon.svg#settings"/></svg></button></div><label class="writing-language">输出语言<select id="output-language"><option value="auto">自动（按写作要求）</option><option value="en">英语</option><option value="zh-CN">中文</option></select></label></details><div class="prompt-box"><div class="task-row"><select id="task-mode" aria-label="写作任务"><option value="write">撰写全文</option><option value="outline">生成大纲</option><option value="continue">接着续写</option><option value="rewrite">修改所选片段</option><option value="review">审阅全文</option></select><span id="context-label">带入当前正文</span></div><textarea id="writing-prompt" aria-label="写作要求" placeholder="输入写作要求" rows="3" maxlength="10000"></textarea><div class="prompt-bottom"><span>Ctrl + Enter</span><button id="generate-button" class="send-button" aria-label="开始生成" title="开始生成"><svg><use href="/icon.svg#arrow"/></svg></button><button id="stop-button" class="stop-button" hidden><svg><use href="/icon.svg#stop"/></svg>停止</button></div></div><p class="composer-note">修改会实时写入正文，可随时停止并撤回。</p></div>
+          </aside>
+        </div>
+      </section>
+      <section id="templates-view" class="view library-view" hidden>
+        <div class="library-heading"><div><h1>模板中心</h1></div><button class="secondary" id="distill-template"><svg><use href="/icon.svg#pen"/></svg>从范文提炼模板</button></div>
+        <div class="library-controls template-controls"><div id="template-categories" class="category-tabs" aria-label="模板分类"></div><div class="template-filters">
+          <label class="template-filter">文件格式<select id="template-format"><option value="all">全部格式</option><option value="PDF">PDF</option><option value="DOCX">Word · DOCX</option><option value="DOC">Word · DOC</option><option value="MD">Markdown</option><option value="XLSX">Excel · XLSX</option><option value="XLS">Excel · XLS</option></select></label>
+          <label class="template-filter">模板语言<select id="template-language"><option value="all">全部语言</option><option value="中文" selected>中文</option><option value="英文原版">英文原版</option></select></label>
+          <label class="search-field"><svg><use href="/icon.svg#search"/></svg><input id="template-search" placeholder="搜索用途、来源或格式" aria-label="搜索模板"></label>
+        </div></div>
+        <p id="template-result-count" class="template-result-count" role="status"></p><div class="template-directory" id="template-grid"></div>
+      </section>
+      <section id="manual-view" class="view manual-view" hidden>
+        <div class="manual-sheet">
+          <header class="manual-head">
+            <div class="manual-head-top">
+              <div>
+                
+                <h1>使用手册</h1>
+              </div>
+              <button class="secondary compact" id="manual-print">打印这份手册</button>
+            </div>
+            
+            <nav class="manual-nav" aria-label="手册目录">
+              <a href="#manual-start">三分钟上手</a>
+              <a href="#manual-tasks">五个常见任务</a>
+              <a href="#manual-buttons">按钮速查</a>
+              <a href="#manual-habits">三条习惯</a>
+              <a href="#manual-faq">常见问题</a>
+              <a href="#manual-scope">它不做什么</a>
+            </nav>
+          </header>
+
+          <section class="manual-section" id="manual-start">
+            <h2>三分钟上手<span>第一次用，只走这五步</span></h2>
+            <ol class="manual-steps">
+              <li class="manual-step"><span class="manual-step-num">1</span><div><strong>连上你的模型</strong><p>点侧栏「模型配置」，填 API 地址、密钥和模型 ID；先点「测试连接」，通过后保存。暂时没有 API 也能用——编辑、导入、导出、结构检查都不受影响。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">2</span><div><strong>新建，或把现有文件带进来</strong><p>左上角「新建文档」从空白开始。手上已有 Word、PDF、Excel、PPT 或文本，就用「最近文档」右上角的上传按钮导入，文字和标题会一并带过来。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">3</span><div><strong>先说清这份文档要干什么</strong><p>打开顶部「文档操作」中的「文档简报」，至少填「写作目的」和「目标读者」两栏。简报只是要求，不会被当成事实。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">4</span><div><strong>让助手起草，或自己写</strong><p>打开「写作工具」，输入要求，按 Ctrl + Enter。可以选择撰写全文、生成大纲、接着续写或审阅全文。只想修改一段时，先选中正文，再右键选择「AI 修改选区」。内容会实时写进正文，不满意随时「撤回 AI 修改」。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">5</span><div><strong>交出去之前点一次「交付检查」</strong><p>它会一次跑完结构、占位符、引用和依据覆盖，给你三档结论：可以交付、建议再确认、有必须处理的问题。把「必须处理」清完，再导出。</p></div></li>
+            </ol>
+            <p class="manual-note"><strong>只记一句话：</strong>简报在写之前，体检在交之前。中间怎么写都行。</p>
+          </section>
+
+          <section class="manual-section" id="manual-tasks">
+            <h2>五个常见任务<span>照着做，不用理解原理</span></h2>
+            <div class="manual-cards">
+              <article class="manual-card">
+                <h3>从零写一份报告或方案</h3>
+                <ol>
+                  <li>「新建文档」，把标题改成正式名称。</li>
+                  <li>「文档简报」里写清目的、读者、范围。</li>
+                  <li>打开「写作工具」，填写主题、篇幅、必须包含哪几节。</li>
+                  <li>生成后逐段改，标题层级用工具栏的「段落样式」。</li>
+                  <li>「交付检查」清完问题，再「导出文档」。</li>
+                </ol>
+              </article>
+              <article class="manual-card">
+                <h3>一堆资料，要变成一份文档</h3>
+                <ol>
+                  <li>「写作工具」→「参考资料」→ 添加文件，Word、PDF、Excel 都行。</li>
+                  <li>勾选这次要用的资料；没勾的不会发出去。</li>
+                  <li>简报里补「关键事实」和「术语与口径」，防止模型自己编。</li>
+                  <li>让助手起草，引用处会自动带上 [资料：文件名]。</li>
+                  <li>点「核对依据」逐条核对，再「交付检查」看覆盖率。</li>
+                </ol>
+              </article>
+              <article class="manual-card">
+                <h3>改一份已有的 Word</h3>
+                <ol>
+                  <li>左侧「文件处理」→ 上传那份文件。</li>
+                  <li>右侧写清改什么，例如「第三节拆成两节，补一段风险说明」。</li>
+                  <li>直接「开始处理」生成新文件；想先看改动就点「生成修改建议」逐条确认。</li>
+                  <li>结果在左侧文件库，下载即可；原文件不会被覆盖。</li>
+                </ol>
+              </article>
+              <article class="manual-card">
+                <h3>交稿前自己查一遍</h3>
+                <ol>
+                  <li>点「交付检查」，等结果出来。</li>
+                  <li>先看结论，再按「必须处理 → 建议确认 → 提示」从上往下清。</li>
+                  <li>「必须处理」没清完，别急着导出。</li>
+                  <li>改完正文再点「重新检查」，旧结果会标成过期。</li>
+                </ol>
+              </article>
+              <article class="manual-card">
+                <h3>几篇文档一起管</h3>
+                <ol>
+                  <li>「章节工作台」里能看每章字数、空章节和引用数。</li>
+                  <li>空章节可一次排进队列，让模型逐章补；队列串行，不会互相覆盖。</li>
+                  <li>「项目资料」建一个项目共用资料，绑定的文档都能用。</li>
+                  <li>「批量审计」勾几篇一起跑，得到对比表和共有问题。</li>
+                  <li>常用的排法存成「任务配方」，下次一键重放。</li>
+                </ol>
+              </article>
+              <article class="manual-card">
+                <h3>想统一成单位常用的框架</h3>
+                <ol>
+                  <li>找两三份写得好的同类文档。</li>
+                  <li>「模板中心」→「从范文提炼模板」，勾选这几份。</li>
+                  <li>确认抽出的章节和表格列，命名保存。</li>
+                  <li>以后新建文档在「我的模板」里选它。</li>
+                </ol>
+              </article>
+            </div>
+          </section>
+
+          <section class="manual-section" id="manual-buttons">
+            <h2>按钮速查</h2><p>文档简报、核对依据、交付检查、章节工作台和历史版本均在顶部「文档操作」中。</p>
+            <table class="manual-table">
+              <thead><tr><th>按钮</th><th>什么时候点</th><th>点完会发生什么</th></tr></thead>
+              <tbody>
+                <tr><td>文档简报</td><td>动笔之前</td><td>打开七栏表单：目的、读者、范围、关键事实、术语、交付约束、资料政策。保存后每次写作都会带上，文档里也会显示完成度。</td></tr>
+                <tr><td>核对依据</td><td>正文写完之后</td><td>抽出正文里可核查的句子，逐条和勾选的资料比对，标出有依据、依据偏弱、没有引用、引用失效；点条目能跳回正文那一句。</td></tr>
+                <tr><td>交付检查</td><td>交稿前</td><td>一次跑完结构、占位符、引用与依据覆盖，给出三档结论和百分制得分，按「必须处理／建议确认／提示」分组。</td></tr>
+                <tr><td>章节工作台</td><td>长文档、要分章推进</td><td>面板里四个页签：章节与队列、项目资料、批量审计、任务配方。</td></tr>
+                <tr><td>历史版本</td><td>改坏了、想回头</td><td>查看并恢复之前的版本。每次保存都会留一版。</td></tr>
+                <tr><td>导出</td><td>导出文档时</td><td>Word（保留标题、列表、表格）、Markdown、纯文本，或打印存成 PDF。正文含图片时选打印。</td></tr>
+                <tr><td>模板中心</td><td>不知道从哪下笔</td><td>挑一个内容框架套用；也可以从自己的范文提炼私有模板。</td></tr>
+                <tr><td>文件处理</td><td>要动 Word／Excel／PPT／PDF</td><td>上传后描述要做什么，结果另存副本，可下载。原文件不动。</td></tr>
+                <tr><td>模型配置</td><td>第一次用、想换模型</td><td>填地址、密钥、模型 ID，可测试连接。密钥默认只在本次运行内有效，重启后重新填写。</td></tr>
+                <tr><td>备份全部文档</td><td>迁移或备份时，在侧栏展开「备份与恢复」</td><td>导出一个 JSON 文件；新环境用「导入文档备份」还原。</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="manual-section" id="manual-habits">
+            <h2>三条习惯<span>能让结果好一大截</span></h2>
+            <ol class="manual-steps">
+              <li class="manual-step"><span class="manual-step-num">1</span><div><strong>动笔前说清三件事</strong><p>这份文档给谁看、要他做什么决定、只允许用哪些材料。这三句话写进简报，等于把返工挡在门外。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">2</span><div><strong>数字和结论后面挂来源</strong><p>写到关键数据时，顺手标上 [资料：文件名]。「核对依据」才能替你核对，否则只能提示「无资料可核」。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">3</span><div><strong>交前看「必须处理」，别盯分数</strong><p>分数只反映检查项的严重程度。真正要看的是那几条必须处理的：占位符没补齐、引用指向不存在的资料、章节是空的。</p></div></li>
+            </ol>
+          </section>
+
+          <section class="manual-section" id="manual-faq">
+            <h2>常见问题<span>按遇到频率排的</span></h2>
+            <div class="manual-faq">
+              <details><summary>没有 API 密钥，能用吗？</summary><p>能。写、改、导入、导出、简报、结构检查、模板都能用。只有 AI 起草和文件处理需要模型。</p></details>
+              <details><summary>AI 直接把正文改了，改坏了怎么办？</summary><p>顶部的「撤回 AI 修改」可以整轮撤回，也可以从「文档操作」打开「历史版本」。修改正文期间可以停止任务。</p></details>
+              <details><summary>为什么有些句子显示「无资料可核」？</summary><p>说明这句话没引用资料，或者引用没指向具体原文。补一条 [资料：文件名] 引用、或补一份资料，再点「重新检查」。</p></details>
+              <details><summary>结论显示「建议再确认」是什么意思？</summary><p>没有阻断问题，但有几处要人看一眼，比如占位符残留、标题层级跳跃、依据覆盖率偏低。照着列表清掉就会变成可交付。</p></details>
+              <details><summary>为什么检查结果变灰，还写着「过期」？</summary><p>这次检查之后正文又改过。结果只对当时那一版有效，重新点一次检查就行。</p></details>
+              <details><summary>导入 Word 后格式变了吗？</summary><p>导入只取文字、标题、列表和表格，分栏、页眉页脚、文本框不会保留。要保留原版式，请用「文件处理」直接改原件。</p></details>
+              <details><summary>导出能带图片吗？</summary><p>Word、Markdown、纯文本导出只保留文字与表格。要连图一起给，选「打印 / 保存为 PDF」。</p></details>
+              <details><summary>文档存在哪儿？会被上传吗？</summary><p>存在这台电脑上。只有你主动执行 AI 任务时，当前正文、写作要求和勾选的资料才会发给你自己配置的服务商。</p></details>
+              <details><summary>换电脑怎么带走？</summary><p>侧栏底部「备份全部文档」导出 JSON，新环境点「导入文档备份」还原。建议每周做一次。</p></details>
+              <details><summary>提炼出来的模板在哪儿？</summary><p>模板中心 →「我的模板」。最多 30 份，可以删除；删掉后用过它的文档会解除关联，正文不受影响。</p></details>
+            </div>
+          </section>
+
+          <section class="manual-section" id="manual-scope">
+            <h2>它不做什么<span>这几件事仍要你自己判断</span></h2>
+            <p>把边界写清楚，比把功能说满更有用。</p>
+            <ul class="manual-steps">
+              <li class="manual-step"><span class="manual-step-num">1</span><div><strong>不判断外部事实真假</strong><p>依据台账只回答一个问题：你给的资料是否支持这句话。它不联网求证，也不替你做事实核查。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">2</span><div><strong>不核对图片、公式和页面版式</strong><p>导出后的 Word 排版、图注、表格跨页仍需人工看一遍。</p></div></li>
+              <li class="manual-step"><span class="manual-step-num">3</span><div><strong>不代替终审</strong><p>分数不是内容质量评分，只是已执行检查项的严重程度。最终签字的人还是你。</p></div></li>
+            </ul>
+          </section>
+
+          <footer class="manual-footer">
+            <span>灵笺 · 本地文档工作台</span>
+            <span>需要纸面版：点右上角「打印这份手册」，或按 Ctrl + P 另存为 PDF。</span>
+          </footer>
+        </div>
+      </section>
+      <section id="admin-view" class="view admin-view" hidden><div class="admin-heading"><h1>管理端</h1><button id="admin-refresh" class="secondary">刷新统计</button></div><p>管理账号状态与查看使用量。停用会立即撤销该账号会话，文档与文件保留。</p><div id="admin-overview" class="admin-overview"></div><div class="admin-controls"><input id="admin-query" aria-label="搜索用户名" maxlength="40" placeholder="搜索用户名"><button id="admin-search" class="secondary">搜索</button></div><p id="admin-status" role="status" aria-live="polite"></p><div id="admin-users"></div><div class="admin-paging"><button id="admin-prev" class="secondary">上一页</button><button id="admin-next" class="secondary">下一页</button></div><h2>近期管理操作</h2><ul id="admin-audit" class="admin-audit"></ul></section>
+      <section id="office-view" class="view office-view" hidden>
+        <div class="office-title-row"><div><h1>文件处理</h1></div><button class="secondary compact" id="office-refresh"><svg><use href="/icon.svg#link"/></svg>重新连接</button></div>
+        <div id="office-engine-status" class="office-engine-status" role="status">正在准备文件处理…</div>
+        <div class="office-layout"><div class="office-library"><div class="office-section-head"><div class="office-subtabs"><button id="office-files-tab" aria-pressed="true">文件库<span id="office-file-count">0</span></button><button id="office-tools-tab" hidden aria-pressed="false">工具列表<span id="office-tool-count">0</span></button></div><button class="primary compact" id="office-upload"><svg><use href="/icon.svg#upload"/></svg>上传文件</button></div>
+          <div id="office-files-panel"><button type="button" class="office-dropzone" id="office-dropzone"><span class="office-drop-icon"><svg><use href="/icon.svg#folder"/></svg></span><span><strong>拖入文件或点击上传</strong><small>Word、Excel、PPT、PDF、文本或图片 · 单个文件上限 20 MB</small></span></button><div class="office-search-row" hidden><input id="office-search-query" aria-label="资料检索关键词" maxlength="200" placeholder="检索选中资料：如预算、项目目标"><button type="button" class="secondary" id="office-search">搜索选中资料</button></div><label class="file-filter search-field"><svg aria-hidden="true"><use href="/icon.svg#search"/></svg><input id="file-name-filter" type="search" aria-label="按文件名查找" placeholder="按文件名查找"></label><div id="office-file-list" class="office-file-list"></div><p class="office-library-note">上传的副本与生成产物保存在项目文件库。Word、Excel、PPT 编辑默认另存副本。</p></div>
+          <div id="office-tools-panel" hidden><div class="office-tool-filter"><select id="office-tool-category" aria-label="筛选工具类别"><option value="all">全部工具</option><option value="word">Word 文档</option><option value="excel">Excel 表格</option><option value="ppt">PPT 演示</option><option value="pdf">PDF 处理</option><option value="files">文件与图片</option></select><span>点击工具可查看参数并直接运行</span></div><div id="office-tool-grid" class="office-tool-grid"></div></div>
+          <div id="office-tool-result" class="office-tool-result" hidden></div>
+        </div><aside class="office-agent"><div class="office-agent-title"><div><h2>处理任务</h2></div></div><div class="office-agent-intro">处理结果保存到文件库。</div><details class="office-agent-example"><summary>查看示例</summary><button data-office-prompt="请读取选中文档，整理一份重点摘要，并生成一个新的 Word 文件。">读取文档，另存一份摘要</button><button data-office-prompt="请根据当前正文生成一份 5 页的 PPT，包含标题页、核心内容和总结页。">把当前正文生成 PPT</button><button data-office-prompt="请读取选中 Excel 的数据，检查缺失值并总结主要发现，不要编造统计结果。">读取表格，整理主要发现</button></details><div class="office-selected" id="office-selected">未选择文件 · 也可直接创建新文件</div><details class="office-options"><summary>参考正文</summary><label class="office-check"><input type="checkbox" id="office-include-document" checked>带入当前编辑器正文</label></details><label class="office-prompt-label" for="office-agent-prompt">文件处理要求</label><textarea id="office-agent-prompt" rows="5" maxlength="10000" placeholder="例如：读取选中的报告，整理要点并生成一份 Word 摘要……"></textarea><button class="primary full-width" id="office-agent-run">开始处理<svg><use href="/icon.svg#arrow"/></svg></button><button class="secondary full-width" id="office-review-run">生成修改建议</button><button class="secondary full-width" id="office-consistency-run">全文一致性检查</button><p class="office-agent-note">选中一份 Word、Excel、PPT 或文字型 PDF，可先逐条审阅再应用修改。</p><button class="secondary full-width" id="office-agent-stop" hidden>停止后续步骤</button><p class="office-agent-note">处理完成后可直接查看和下载文件。停止后已完成的文件会保留。</p><div id="office-agent-log" class="office-agent-log" role="status" aria-live="polite"></div><div id="office-delivery-checks" class="office-delivery-checks" aria-live="polite"></div><div id="office-agent-result" class="office-agent-result" hidden></div><section id="office-review" class="office-review" aria-label="文档修改建议" hidden></section></aside></div>
+      </section>
+      <section id="settings-view" class="view settings-view" hidden><div class="settings-heading"><div><h1>模型配置</h1><p>连接 API，为写作与文件处理选择模型。</p></div></div><div class="settings-grid"><div class="provider-column"><div class="section-label"><span>我的模型配置</span><button class="icon-button" id="add-provider" title="新增模型配置" aria-label="新增模型配置"><svg><use href="/icon.svg#plus"/></svg></button></div><div id="provider-list"></div><div class="settings-note"><strong>模型请求发往哪里</strong><p>模型请求发往你填写的 API 地址。使用在线模型执行写作任务时，写作要求、正文或选区，以及启用的参考资料会按任务需要发送给该服务商。</p></div></div><form id="provider-form" class="provider-form"><div class="form-title"><div><h2 id="provider-form-title">添加模型配置</h2><p>使用服务商提供的准确地址和模型 ID。</p></div><span class="form-step">API</span></div><input id="provider-id" type="hidden">
+<label>模型服务商<select id="provider-vendor" aria-describedby="provider-preset-hint"><option value="custom">自定义 · OpenAI / 兼容接口</option></select></label>
+
+<p class="field-help" id="provider-preset-hint">填写服务商的准确地址与模型 ID，支持兼容接口、中转服务及本地模型。</p>
+<div class="provider-preset-links" id="provider-preset-links" hidden><a id="provider-console" target="_blank" rel="noopener noreferrer">获取 API Key</a><a id="provider-docs" target="_blank" rel="noopener noreferrer">查看接入文档 ↗</a></div>
+<label>配置名称<input id="provider-name" name="providerName" placeholder="例如：我的写作模型" maxlength="80" required></label><label>接口协议<select id="provider-protocol"><option value="chat">OpenAI 兼容 · Chat Completions</option><option value="responses">OpenAI · Responses</option></select></label><label>API 地址<input id="provider-url" type="url" placeholder="https://你的服务商地址/v1" required></label><p class="field-help" id="endpoint-preview">填写基础地址或完整接口地址，系统将自动补全路径。</p><label>API Key<span class="secret-input"><input id="provider-key" type="password" autocomplete="new-password" placeholder="输入密钥；无密钥的本地服务可留空"><button type="button" class="icon-button" id="toggle-key" aria-label="显示或隐藏密钥"><svg><use href="/icon.svg#eye"/></svg></button></span></label><p class="field-help" id="key-hint">密钥默认仅在本次运行期间保留。</p><label>选择模型<span class="model-choice-row"><select id="provider-model-choice" aria-describedby="provider-model-list-status"><option value="">浏览全部模型…</option></select><button type="button" class="secondary" id="fetch-provider-models">从平台获取模型</button></span></label>
+<div id="remember-key-option" hidden><label class="checkbox-label"><input type="checkbox" id="remember-key" aria-describedby="remember-key-hint" disabled>加密保存密钥</label><p id="remember-key-hint" class="field-help">勾选后，下次登录可继续使用。</p></div><button id="forget-key" class="text-button" type="button" hidden>清除此配置的密钥</button>
+<p class="field-help" id="provider-model-list-status" role="status">可从平台获取模型列表，也可手动填写模型 ID。</p>
+<label>模型 ID（可搜索或手填）<input id="provider-model" list="provider-models" placeholder="输入关键词查找建议，或填写其他模型 ID" maxlength="200" required></label><datalist id="provider-models"></datalist><p class="field-help">上方列表可浏览全部型号；此处可手动填写任意模型 ID。获取列表使用当前地址和 API Key，可调用权限以服务商为准。</p><details class="advanced-settings"><summary>高级设置<svg><use href="/icon.svg#down"/></svg></summary><div class="form-row"><label>最大输出 Token<input id="provider-max-tokens" type="number" min="128" max="65536" value="4096" required></label><label>超时时间（秒）<input id="provider-timeout" type="number" min="10" max="600" value="120" required></label></div><div class="form-row"><label>温度（可留空）<input id="provider-temperature" type="number" min="0" max="2" step="0.1" placeholder="服务商默认"></label><label id="token-field-label">输出长度参数<select id="provider-token-field"><option value="max_tokens">max_tokens（常见兼容接口）</option><option value="max_completion_tokens">max_completion_tokens</option><option value="omit">不发送此参数</option></select></label></div><label class="checkbox-label"><input type="checkbox" id="provider-stream" checked>启用流式输出</label><p class="field-help">部分推理模型需要 max_completion_tokens，且不接受温度参数。具体以服务商文档为准。</p></details><div id="connection-result" class="connection-result" role="status" hidden></div><div class="form-actions"><button type="button" class="secondary" id="test-provider"><svg><use href="/icon.svg#link"/></svg>测试连接</button><button type="submit" class="primary" id="save-provider">保存配置<svg><use href="/icon.svg#check"/></svg></button></div><p class="field-help">测试连接会发送一条简短请求，可能产生服务商调用费用。</p></form></div></section>
+    </main>
+  </div>
+  <div class="account-menu" id="account-menu" hidden><span id="account-name"></span><button type="button" id="logout-button">退出登录</button></div>
+  <dialog id="modal" class="modal"><div class="modal-top"><span id="modal-eyebrow"></span><button class="icon-button" id="modal-close" aria-label="关闭弹窗"><svg><use href="/icon.svg#close"/></svg></button></div><div id="modal-body"></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <input type="file" id="backup-file" accept=".json,application/json" hidden><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden><input type="file" id="document-file" accept=".txt,.md,.markdown,.docx,.pdf,.xlsx,.xlsm,.pptx" hidden><input type="file" id="source-file" accept=".txt,.md,.markdown,.csv,.docx,.pdf,.xlsx,.xlsm,.pptx" multiple hidden><input type="file" id="office-file-input" accept=".docx,.xlsx,.xlsm,.pptx,.pdf,.txt,.md,.csv,.png,.jpg,.jpeg,.webp" multiple hidden>
+  <script type="module" src="/app.js"></script>
+  <div id="editor-context-menu" class="editor-context-menu" popover aria-label="正文操作">
+    <button type="button" data-editor-action="rewrite">AI 修改选区</button>
+    <button type="button" data-editor-action="cut">剪切</button>
+    <button type="button" data-editor-action="copy">复制</button>
+    <button type="button" data-editor-action="paste">粘贴文本</button>
+  </div>
+</body>
+</html>

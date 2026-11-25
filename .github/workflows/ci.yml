@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # ubuntu 与 windows 都跑，因为路径边界、锁文件和
+        # Office 子进程的行为在两个平台上并不完全一致。
+        os: [ubuntu-latest, windows-latest]
+        node: ['22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 语法检查和后端测试可直接用 Node 运行，无需下载 Electron。
+      - name: 语法检查
+        run: npm run check
+
+      # 未安装 Python 依赖时，Office 与 OCR 用例会显式跳过，其余用例仍必须通过。
+      - name: 自动测试
+        run: npm test
+
+  # 公开 CI 验证独立 Python 功能。兼容 Office 集成用例由开发者在本地安装后运行。
+  office:
+    name: 独立文档功能（Python）
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: 安装 Office 与 OCR 依赖
+        run: |
+          python -m venv .venv-office
+          .venv-office/bin/python -m pip install --upgrade pip
+          .venv-office/bin/python -m pip install -r requirements-office.txt
+
+      - name: 运行无 Office 组件的测试
+        run: npm test

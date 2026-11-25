@@ -1,0 +1,13 @@
+# Office / OCR 顶层依赖锁定版本（Windows 与 Linux 通用）。
+#
+# 只锁直接依赖：pip 会为当前平台解析传递依赖，跨平台差异不会被这份文件绑死。
+# 由 .venv-office 的实际安装导出（2026-11-21）。升级步骤见 CONTRIBUTING.md「依赖升级」。
+mcp==1.30.0
+python-docx==1.2.0
+openpyxl==3.1.5
+python-pptx==1.0.2
+PyMuPDF==2.1
+Pillow==13.0.0
+numpy==2.5.4
+rapidocr==3.10.0
+onnxruntime==1.31.1

@@ -1,0 +1,30 @@
+root = true
+
+# 项目只使用 Node 内置模块，无构建步骤：这里统一编辑器在打开文件时采用的格式。
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# 前端与后端都是 2 空格缩进；Markdown 不裁剪行尾空格（两个空格是换行）。
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{js,mjs,json,css,html}]
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+# Windows 启动脚本必须是 CRLF，且带 BOM 才能在部分 cmd.exe 版本里正确显示中文。
+[*.{cmd,bat}]
+end_of_line = crlf
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2

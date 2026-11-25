@@ -1,0 +1,472 @@
+[
+  {
+    "id": "zh-notice",
+    "category": "商务办公",
+    "title": "工作通知",
+    "subtitle": "事项、对象、时间和办理要求一次说清",
+    "sections": [
+      "通知事项",
+      "工作安排",
+      "办理要求"
+    ],
+    "rules": "写清通知对象、具体事项、时间地点和办理方式。缺失的单位、日期、联系人均保留占位符，不编造文号或审批结果。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合工作通知的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/notice.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-notice-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/notice.md",
+        "size": 2130,
+        "sha256": "35ef32eeb8f26c74f3a1bcc6076a272ff90ef441368404610cf9a0601192a4ef",
+        "upstreamSha256": "17765b5a395d708b1f3c9cd2df9eef33f968f3437109e89568412fe73aead604"
+      },
+      {
+        "id": "document",
+        "label": "中文 Word 可编辑版",
+        "format": "DOCX",
+        "file": "zh-notice-document.docx",
+        "size": 39122,
+        "sha256": "5b5a8d4c9f374387bba54d8d9691eefd465fd22a28f9b040aa5ed7ef3504f15b",
+        "derivedFrom": "35ef32eeb8f26c74f3a1bcc6076a272ff90ef441368404610cf9a0601192a4ef"
+      },
+      {
+        "id": "print",
+        "label": "中文 PDF 打印参考版",
+        "format": "PDF",
+        "file": "zh-notice-print.pdf",
+        "size": 122624,
+        "sha256": "f8f8caa43f770729cf9815c48b5c0401ef99aad9ccee4872ad8009df902421f0",
+        "derivedFrom": "5b5a8d4c9f374387bba54d8d9691eefd465fd22a28f9b040aa5ed7ef3504f15b"
+      }
+    ]
+  },
+  {
+    "id": "zh-request",
+    "category": "商务办公",
+    "title": "事项请示",
+    "subtitle": "围绕一项待决策事项说明理由与建议",
+    "sections": [
+      "请示缘由",
+      "拟办方案",
+      "请示事项"
+    ],
+    "rules": "一文一事，明确需要上级决定的事项和建议方案。预算、政策依据和审批状态以实际资料为准，未获批准不得写成已同意。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合事项请示的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/request.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-request-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/request.md",
+        "size": 1981,
+        "sha256": "b6b29eaed18782b49deecb39ae12d7d25aec345e81f0b53f13fe94fa7c79d049",
+        "upstreamSha256": "48b10bde53932ec8ff1b19253f3871cc0352fc7d4a9f2e6e067513bc8f6d47fa"
+      },
+      {
+        "id": "document",
+        "label": "中文 Word 可编辑版",
+        "format": "DOCX",
+        "file": "zh-request-document.docx",
+        "size": 39038,
+        "sha256": "b27596425102f7033e259fda8e4f9a1cbc387858b1388c5a354cb4e2fe079e2e",
+        "derivedFrom": "b6b29eaed18782b49deecb39ae12d7d25aec345e81f0b53f13fe94fa7c79d049"
+      }
+    ]
+  },
+  {
+    "id": "zh-report",
+    "category": "研究分析",
+    "title": "工作情况报告",
+    "subtitle": "汇报进展、问题与后续安排",
+    "sections": [
+      "基本情况",
+      "主要工作与成效",
+      "存在问题",
+      "下一步安排"
+    ],
+    "rules": "事实、数据和结论必须对应实际材料。区分已完成、进行中和计划事项；报告不夹带未经确认的请批事项。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合工作情况报告的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/report.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-report-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/report.md",
+        "size": 2163,
+        "sha256": "c6cc30c5aba4bfe45b394801bff2ad5af7913400cf78e9053f2c65e83b285126",
+        "upstreamSha256": "90fdeca0927acd7449aec3b2a51d35daf57f60afdf0890d1963a70cc68c85185"
+      },
+      {
+        "id": "document",
+        "label": "中文 Word 可编辑版",
+        "format": "DOCX",
+        "file": "zh-report-document.docx",
+        "size": 39157,
+        "sha256": "ad31c575e0ba6a24a9b1e3965ff02a7bb0b386202292bbba37b429114a4268c6",
+        "derivedFrom": "c6cc30c5aba4bfe45b394801bff2ad5af7913400cf78e9053f2c65e83b285126"
+      }
+    ]
+  },
+  {
+    "id": "zh-presentation",
+    "category": "商务办公",
+    "title": "专题汇报材料",
+    "subtitle": "按汇报对象组织重点与需协调的问题",
+    "sections": [
+      "总体情况",
+      "重点进展",
+      "主要问题",
+      "工作建议"
+    ],
+    "rules": "开头说明汇报主题与核心结论，成果数字应有依据。建议与已作决策分开，协调事项写清对象和预期结果。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合专题汇报材料的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/presentation.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-presentation-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/presentation.md",
+        "size": 2166,
+        "sha256": "a1f4895b095c1202ce9d774c536ba8514774c041e47a7d1d6d14a5ef3ea2fba6",
+        "upstreamSha256": "3d5797d0e7e35f65974ad9de6cc27eec71e3c396ad77af75cf361a9e6776a275"
+      }
+    ]
+  },
+  {
+    "id": "zh-briefing",
+    "category": "日常协作",
+    "title": "工作简报",
+    "subtitle": "用短篇材料归纳做法、成效和经验",
+    "sections": [
+      "工作背景",
+      "主要做法",
+      "工作成效",
+      "经验启示"
+    ],
+    "rules": "选取可核实的具体做法与成果，避免空泛评价。不得虚构期号、编发单位、引用与统计数据。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合工作简报的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/briefing.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-briefing-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/briefing.md",
+        "size": 2036,
+        "sha256": "8b686feb5453bdd856ae6c2857ab10c810b65e4f2b1b8314e55c27b86e79f284",
+        "upstreamSha256": "29a4a1ebf2828bc353a88a2810e460ac886dadd7e5a6638bdb9c295b35d7f47d"
+      }
+    ]
+  },
+  {
+    "id": "zh-work-plan",
+    "category": "项目管理",
+    "title": "专项工作方案",
+    "subtitle": "把目标分解为任务、节点和责任",
+    "sections": [
+      "工作目标",
+      "主要任务",
+      "实施步骤",
+      "组织保障"
+    ],
+    "rules": "任务要对应负责人、时间节点、交付物和验收标准。资源、预算、权限与责任未经确认时标注待确认。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合专项工作方案的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/work-plan.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-work-plan-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/work-plan.md",
+        "size": 2283,
+        "sha256": "bc93a4db8e04fc698093472dea0a5ec8e74810a81bbe7788cf4f6ab2aa60a65e",
+        "upstreamSha256": "669b8cb77f068d34889e257bf2fd29f6d4ac3c04924acdc328a4752b146c4f53"
+      },
+      {
+        "id": "document",
+        "label": "中文 Word 可编辑版",
+        "format": "DOCX",
+        "file": "zh-work-plan-document.docx",
+        "size": 39189,
+        "sha256": "c33d6b3112f58132c050a0d36a58ab33b0ce9268ad2f697cc4ff6dfabaf9d844",
+        "derivedFrom": "bc93a4db8e04fc698093472dea0a5ec8e74810a81bbe7788cf4f6ab2aa60a65e"
+      },
+      {
+        "id": "print",
+        "label": "中文 PDF 打印参考版",
+        "format": "PDF",
+        "file": "zh-work-plan-print.pdf",
+        "size": 132326,
+        "sha256": "ac9d4c171317a57122bde2ad3a564657665f088a9993d322946f105ab44b89ee",
+        "derivedFrom": "c33d6b3112f58132c050a0d36a58ab33b0ce9268ad2f697cc4ff6dfabaf9d844"
+      }
+    ]
+  },
+  {
+    "id": "zh-summary",
+    "category": "商务办公",
+    "title": "年度工作总结",
+    "subtitle": "用实际成果支撑总结与改进计划",
+    "sections": [
+      "总体回顾",
+      "重点工作",
+      "问题不足",
+      "下一阶段计划"
+    ],
+    "rules": "按真实周期总结，数据注明口径，不夸大个人或团队贡献。问题与改进措施对应，下一阶段计划写清可执行动作。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合年度工作总结的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/summary.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-summary-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/summary.md",
+        "size": 2081,
+        "sha256": "af17c34d7b7d3a0748e27d5ff4ef7ab96a14cfc8f5906ab03b29951c554fb8bd",
+        "upstreamSha256": "020ed53ead9fb81a7fae51746da43e44ea77c97f03eaf355e4bc94d7f071084c"
+      }
+    ]
+  },
+  {
+    "id": "zh-speech",
+    "category": "日常协作",
+    "title": "会议讲话稿",
+    "subtitle": "根据场合与听众组织观点和行动要求",
+    "sections": [
+      "开场",
+      "重点内容",
+      "工作要求",
+      "结束语"
+    ],
+    "rules": "称谓、会议名称、政策引用及成果必须准确。讲话身份、承诺和部署范围不得超出用户提供的信息。",
+    "language": "中文",
+    "description": "中文开源文书模板，包含可替换字段与正文结构，适合会议讲话稿的初稿整理。使用前按本单位要求核定格式与占位内容。",
+    "usage": [
+      "先替换方括号内的单位、日期、人员与事项等占位内容。",
+      "补充实际资料后，可在编辑器起草或加入文件库让 AI 另存填写。",
+      "确认事实、数字和办理要求，删除不适用的字段；保留来源许可。"
+    ],
+    "source": {
+      "name": "official-document-drafting 中文文书模板",
+      "url": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/speech.md",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/zhaohui-yang/official-document-drafting/blob/6b4166a50b96733684b36da6336ea85a847cf3be/LICENSE",
+      "licenseFile": "Chinese-Official-LICENSE.txt",
+      "attribution": "Copyright (c) 2026 official-document-drafting contributors",
+      "checkedAt": "2026-11-11",
+      "upstreamCommit": "6b4166a50b96733684b36da6336ea85a847cf3be"
+    },
+    "assets": [
+      {
+        "id": "markdown",
+        "label": "中文 Markdown 原版",
+        "format": "MD",
+        "file": "zh-speech-markdown.md",
+        "sourceUrl": "https://raw.githubusercontent.com/zhaohui-yang/official-document-drafting/6b4166a50b96733684b36da6336ea85a847cf3be/assets/templates/speech.md",
+        "size": 1995,
+        "sha256": "e51dbb216b8a0f66ea9bd2adc78fe98e3055fdd939cc8bdf06428a434c81c766",
+        "upstreamSha256": "b648b9dfc1c7d536ac28c32a045be5d48432abc93ea5a88da7a48c77b2aa867a"
+      }
+    ]
+  },
+  {
+    "id": "zh-business-budget",
+    "category": "财务表格",
+    "title": "年度预算执行表 中文版",
+    "subtitle": "逐月对照预算与实际，自动计算结余差额",
+    "language": "中文",
+    "description": "根据 business.gov.au 开放许可模板改编为简体中文，重排为单页工作表，包含输入区域、自动计算和来源说明。",
+    "sections": [
+      "预算收入",
+      "实际收入",
+      "预算支出",
+      "实际支出",
+      "结余与差额"
+    ],
+    "rules": "统一金额单位和统计周期，区分预算和实际，只填写输入格，保留结余及年度合计公式，不虚构收支。",
+    "usage": [
+      "先填写单位、年度、金额单位，统一含税或不含税口径。",
+      "填写浅蓝色预算与实际输入格，结余及差额自动计算。",
+      "空白输入按 0 计算；确认数据完整后再使用合计，插入新科目后复核公式。"
+    ],
+    "source": {
+      "name": "business.gov.au",
+      "url": "https://business.gov.au/finance/financial-tools-and-templates/create-a-budget",
+      "license": "CC BY 3.0 AU",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/au/",
+      "policyUrl": "https://business.gov.au/legal-notices/copyright",
+      "attribution": "© Commonwealth of Australia 2020. Adapted into Simplified Chinese by 灵笺; layout, month labels and fields modified under CC BY 3.0 AU.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "workbook",
+        "label": "中文 Excel 自动计算版",
+        "format": "XLSX",
+        "file": "zh-business-budget-workbook.xlsx",
+        "size": 5665,
+        "sha256": "63e5b1de41b45039dc8429e2ad31d70c7fec3efdca38a921b6129ddb46958dea",
+        "derivedFrom": "46fadfcebb08909fe30a5a077382541fa7526e134e556eab93f9091ed14b6c13"
+      }
+    ]
+  },
+  {
+    "id": "zh-cash-flow",
+    "category": "财务表格",
+    "title": "月度现金流预测表 中文版",
+    "subtitle": "自动结转期初期末余额，追踪每月资金变化",
+    "language": "中文",
+    "description": "根据 business.gov.au 开放许可模板改编为简体中文，重排为单页工作表，包含输入区域、自动计算和来源说明。",
+    "sections": [
+      "期初余额",
+      "现金流入",
+      "现金流出",
+      "净流量",
+      "期末余额"
+    ],
+    "rules": "统一金额单位和含税口径，仅填写输入格，保留汇总与期初结转公式。现金收入和利润不能混用，未提供的数值不得虚构。",
+    "usage": [
+      "先填写单位、年度、金额单位，统一含税或不含税口径。",
+      "填写 B7 首月期初余额和浅蓝色收支输入格，后续月份自动结转。",
+      "空白输入按 0 计算；确认数据完整后再使用合计，插入新科目后复核公式。"
+    ],
+    "source": {
+      "name": "business.gov.au",
+      "url": "https://business.gov.au/finance/cash-flow/set-up-a-cash-flow-statement",
+      "license": "CC BY 3.0 AU",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/au/",
+      "policyUrl": "https://business.gov.au/legal-notices/copyright",
+      "attribution": "© Commonwealth of Australia 2020. Adapted into Simplified Chinese by 灵笺; layout, month labels and fields modified under CC BY 3.0 AU.",
+      "checkedAt": "2026-11-11"
+    },
+    "assets": [
+      {
+        "id": "workbook",
+        "label": "中文 Excel 自动计算版",
+        "format": "XLSX",
+        "file": "zh-cash-flow-workbook.xlsx",
+        "size": 6121,
+        "sha256": "aebd35e792d31164cffeecfdd1564f14d9d6b4326be685c29c6ad40f5f437a8e",
+        "derivedFrom": "944dd313fcbf0cdcc9f8b6782227d23907bcf58f64f7c9e12bf4a0ab095b9ff7"
+      }
+    ]
+  }
+]
