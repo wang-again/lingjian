@@ -7,11 +7,14 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-if not exist "node_modules\.bin\electron.cmd" (
-  echo 正在安装桌面版依赖……
-  call npm.cmd ci
-  if errorlevel 1 goto failed
+if exist "node_modules\electron\cli.js" (
+  node -e "const installed = require('./node_modules/electron/package.json').version; const locked = require('./package-lock.json').packages['node_modules/electron'].version; process.exitCode = installed === locked ? 0 : 1" >nul 2>nul
+  if not errorlevel 1 goto start
 )
+echo 正在安装桌面版依赖……
+call npm.cmd ci --include=dev
+if errorlevel 1 goto failed
+:start
 echo 正在启动灵笺文档工作台……
 call npm.cmd start
 if errorlevel 1 goto failed
