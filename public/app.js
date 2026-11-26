@@ -1,9 +1,10 @@
 import { changeLanguage, language, localizePage, t, uiHtml } from './i18n.js';
 import {createLiveEdit} from './live-edit.js';
-import { escapeHtml as e, sanitizeHtml, markdownToHtml, editorBlocks, editorMarkdown } from './editor.js';
+import { escapeHtml as e, sanitizeHtml, markdownToHtml, docxContent, editorMarkdown } from './editor.js';
 import { initOffice } from './office.js';
 import { initAdmin } from './admin.js';
 import { initQuality } from './quality.js';
+import { initAnnotations } from './annotations.js';
 import { initStudio } from './studio.js';
 import { captureFragment, fragmentIsCurrent, fragmentResultHtml } from './fragments.js';
 import { createRecoveryStore, sameDraftContent } from './recovery.js';
@@ -28,7 +29,7 @@ function saveNotice(message = '') {
   $('save-recovery').hidden = !message;
   $('save-recovery-message').textContent = message;
 }
-let officeUI, adminUI, qualityUI, studioUI;
+let officeUI, adminUI, qualityUI, studioUI, annotationUI;
 let modelListController, modelListVersion = 0;
 const templateLabel = (template, value) => template.category === '我的模板' ? value : t(value);
 const formatDate = value => new Intl.DateTimeFormat(language, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
@@ -151,6 +152,7 @@ function renderCurrent() {
   state.result = null; $('generation-result').hidden = true; $('assistant-welcome').hidden = false;
   qualityUI?.reset();
   studioUI?.reset();
+  annotationUI?.close();
   renderDocuments(); updateStats(); renderSources();
 }
 // 服务端直接改了正文（章节调整、任务执行、项目绑定）时，把结果同步回编辑器。
@@ -161,7 +163,7 @@ function applyDocument(updated) {
   Object.assign(current, {
     title: updated.title, html: updated.html, templateId: updated.templateId, brief: updated.brief,
     sources: updated.sources, history: updated.history, revision: updated.revision, updatedAt: updated.updatedAt,
-    evidence: updated.evidence, delivery: updated.delivery, tasks: updated.tasks, locks: updated.locks, projectId: updated.projectId
+    evidence: updated.evidence, delivery: updated.delivery, annotations: updated.annotations, tasks: updated.tasks, locks: updated.locks, projectId: updated.projectId
   });
   current._dirty = false;
   $('document-title').value = current.title;
@@ -169,6 +171,7 @@ function applyDocument(updated) {
   if (state.selection) clearFragment({ keepRewrite: true });
   $('save-status').textContent = t('已保存');
   updateStats(); renderDocuments(); qualityUI?.refreshIndicators(); studioUI?.refreshBadge();
+  annotationUI?.refresh();
 }
 function dirty() {
   if (!state.doc || state.busy) return;
@@ -830,10 +833,10 @@ function download(blob, filename) {
 const filename = title => title.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 120) || '文档';
 function exportModal() {
   if (!state.doc) { toast(t('请先新建或导入文档。')); return; }
-  showModal('', uiHtml`<h2>导出文档</h2><p class="modal-description">选择需要的格式。Word 导出保留标题层级、列表、表格和基础文字格式。</p><div class="export-options"><button data-export="docx"><span class="file-type">W</span><span><strong>Word 文档</strong><small>.docx · 可继续编辑</small></span>${icon('download')}</button><button data-export="md"><span class="file-type md">M↓</span><span><strong>Markdown</strong><small>.md · 纯文本结构</small></span>${icon('download')}</button><button data-export="txt"><span class="file-type txt">T</span><span><strong>纯文本</strong><small>.txt · 简洁通用</small></span>${icon('download')}</button><button data-export="print"><span class="file-type pdf">P</span><span><strong>打印 / 保存为 PDF</strong><small>使用浏览器打印预览</small></span>${icon('arrow')}</button></div>`);
+  showModal('', uiHtml`<h2>导出文档</h2><p class="modal-description">选择需要的格式。Word 导出保留标题层级、列表、表格、基础文字格式和图片。</p><div class="export-options"><button data-export="docx"><span class="file-type">W</span><span><strong>Word 文档</strong><small>.docx · 可继续编辑</small></span>${icon('download')}</button><button data-export="md"><span class="file-type md">M↓</span><span><strong>Markdown</strong><small>.md · 纯文本结构</small></span>${icon('download')}</button><button data-export="txt"><span class="file-type txt">T</span><span><strong>纯文本</strong><small>.txt · 简洁通用</small></span>${icon('download')}</button><button data-export="print"><span class="file-type pdf">P</span><span><strong>打印 / 保存为 PDF</strong><small>使用浏览器打印预览</small></span>${icon('arrow')}</button></div>`);
   if ($('editor').querySelector('img')) {
     const note = document.createElement('p'); note.className = 'field-help';
-    note.textContent = t('正文包含图片：当前 Word、Markdown 和纯文本导出仅保留文字与表格；如需保留图片，请选择打印 / 保存为 PDF。');
+    note.textContent = t('正文包含图片，可使用 Word 或 PDF 导出保留。');
     $('modal-body').querySelector('.export-options').before(note);
   }
   if (window.lingjianDesktop) {
@@ -842,16 +845,23 @@ function exportModal() {
     pdf.querySelector('small').textContent = t('保留正文中的图片');
   }
   $('modal-body').querySelectorAll('[data-export]').forEach(button => { button.onclick = async () => {
+    const buttons = $('modal-body').querySelectorAll('[data-export]');
+    buttons.forEach(option => { option.disabled = true; });
     try {
       await flushSave(); const kind = button.dataset.export, name = filename(state.doc.title);
-      if (kind === 'docx') { const response = await api('/api/export/docx', { method: 'POST', raw: true, body: { title: state.doc.title, blocks: editorBlocks($('editor')) } }); download(await response.blob(), `${name}.docx`); }
-      else if (kind === 'md') download(new Blob([`# ${state.doc.title}\n\n${editorMarkdown($('editor'))}\n`], { type: 'text/markdown;charset=utf-8' }), `${name}.md`);
+      if (kind === 'docx') {
+        const title = state.doc.title;
+        const content = await docxContent($('editor'));
+        const response = await api('/api/export/docx', { method: 'POST', raw: true, body: { title, ...content } });
+        download(await response.blob(), `${name}.docx`);
+      } else if (kind === 'md') download(new Blob([`# ${state.doc.title}\n\n${editorMarkdown($('editor'))}\n`], { type: 'text/markdown;charset=utf-8' }), `${name}.md`);
       else if (kind === 'txt') download(new Blob([`${state.doc.title}\n\n${$('editor').innerText}`], { type: 'text/plain;charset=utf-8' }), `${name}.txt`);
       $('modal').close();
       if (kind !== 'print') toast(t('导出已开始'));
       else if (!window.lingjianDesktop) window.print();
       else if (await window.lingjianDesktop.savePdf(name, language)) toast(t('PDF 已保存'));
     } catch (error) { toast(error.message, true); }
+    finally { buttons.forEach(option => { option.disabled = false; }); }
   }; });
 }
 
@@ -900,6 +910,7 @@ function bindEvents() {
   setAssistantOpen(false);
   $('focus-toggle').onclick = () => {
     const open = getComputedStyle($('assistant-panel')).display === 'none';
+    if (open) annotationUI?.close();
     if (open && narrowWorkspace.matches) {
       if (!$('quality-view').hidden) $('quality-close').click();
       if (!$('studio-view').hidden) $('studio-close').click();
@@ -911,7 +922,7 @@ function bindEvents() {
   const menu = $('document-menu');
   const menuTrigger = menu.querySelector('summary');
   menu.addEventListener('click', event => {
-    if (event.target.closest('button')) { menu.open = false; menuTrigger.focus(); }
+    if (event.target.closest('button')) { annotationUI?.close(); menu.open = false; menuTrigger.focus(); }
   }, true);
   document.addEventListener('pointerdown', event => {
     if (menu.open && !menu.contains(event.target)) menu.open = false;
@@ -919,6 +930,7 @@ function bindEvents() {
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (menu.open) { menu.open = false; menuTrigger.focus(); }
+    else if ($('annotation-panel').contains(document.activeElement)) $('annotation-close').click();
     else if ($('assistant-panel').contains(document.activeElement)) $('assistant-close').click();
   });
   $('document-title').addEventListener('keydown', event => {
@@ -1009,6 +1021,15 @@ async function openWorkspace(data) {
     bindEvents();
     qualityUI = initQuality({ api, state, toast, showModal, flushSave, renderTemplates });
     studioUI = initStudio({ api, state, toast, showModal, flushSave, applyDocument, selectDocument, renderDocuments });
+    annotationUI = initAnnotations({
+      api, state, toast, showModal, flushSave, narrow: () => narrowWorkspace.matches,
+      revealEditor: () => {
+        if (!$('quality-view').hidden) qualityUI.reset();
+        if (!$('studio-view').hidden) studioUI.reset();
+        if (!$('ai-report-view').hidden) closeAiReport();
+        if (!$('assistant-panel').classList.contains('collapsed')) $('assistant-close').click();
+      }
+    });
     backupUI = initBackupUI({ api, state, flushSave, showModal, toast, download, recovery, refreshDocuments });
     $('retry-save').onclick = () => saveCurrent().then(() => toast(t('已保存'))).catch(error => toast(error.message, true));
     $('forget-key').onclick = async () => {

@@ -15,8 +15,6 @@ class FakeResponse extends EventEmitter {
   end() { this.writableEnded = true; this.endCalls++; }
 }
 
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 test('打开事件流时写入正确的响应头与事件格式', () => {
   const res = new FakeResponse();
   const stream = openEventStream(res, { heartbeatMs: 0 });
@@ -43,17 +41,20 @@ test('客户端断开时中止上游信号，供模型请求与工具调用取�
   stream.close();
 });
 
-test('心跳按间隔写入，关闭后立即停止且只结束一次', async () => {
+test('心跳按间隔写入，关闭后立即停止且只结束一次', t => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
   const res = new FakeResponse();
   const stream = openEventStream(res, { heartbeatMs: 15 });
-  await wait(50);
-  const beats = res.chunks.filter(chunk => chunk === ': heartbeat\n\n').length;
-  assert.ok(beats >= 2, `应写入心跳，实际 ${beats} 次`);
+  t.mock.timers.tick(14);
+  assert.deepEqual(res.chunks, []);
+  t.mock.timers.tick(1);
+  t.mock.timers.tick(15);
+  assert.deepEqual(res.chunks, [': heartbeat\n\n', ': heartbeat\n\n']);
 
   stream.close();
   stream.close();
   assert.equal(res.endCalls, 1, 'close 必须幂等');
   const after = res.chunks.length;
-  await wait(50);
+  t.mock.timers.tick(30);
   assert.equal(res.chunks.length, after, '关闭后不应再写心跳');
 });

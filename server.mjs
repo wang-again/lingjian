@@ -7,7 +7,8 @@ import { templates } from './lib/templates.mjs';
 import { normalizeBrief } from './lib/document-brief.mjs';
 import { distillTemplate } from './lib/template-distill.mjs';
 import { buildEvidenceLedger } from './lib/evidence.mjs';
-import { runDeliveryCheck } from './lib/delivery-check.mjs';
+import { runDeliveryCheck, trackDeliveryIssues } from './lib/delivery-check.mjs';
+import { updateAnnotations } from './lib/annotations.mjs';
 import { sectionMap, moveSection, removeSection, insertSection } from './lib/sections.mjs';
 import { normalizeTasks, normalizeLocks, nextQueued, resolveTaskSection, scopedDocument, chapterInstruction, applyChapterResult, applyWholeResult } from './lib/chapter-tasks.mjs';
 import { normalizeProject, addProjectSources, searchProject, mergeSources, PROJECT_LIMITS } from './lib/projects.mjs';
@@ -57,7 +58,8 @@ function validateDocument(input, previous, { customTemplates = [] } = {}) {
   const tasks = Array.isArray(previous?.tasks) ? previous.tasks : [];
   const locks = previous?.locks && typeof previous.locks === 'object' ? previous.locks : {};
   const projectId = previous?.projectId || null;
-  return trackAiEdit(previous, { id: previous?.id || crypto.randomUUID(), title, html, templateId, brief: brief || null, sources, history: history.slice(0, 20), revision: (previous?.revision || 0) + 1, createdAt: previous?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), evidence: previous?.evidence || null, delivery: previous?.delivery || null, tasks, locks, projectId }, input.aiCheckpoint);
+  const annotations = previous?.annotations || [];
+  return trackAiEdit(previous, { id: previous?.id || crypto.randomUUID(), title, html, templateId, brief: brief || null, sources, history: history.slice(0, 20), revision: (previous?.revision || 0) + 1, createdAt: previous?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), evidence: previous?.evidence || null, delivery: previous?.delivery || null, annotations, tasks, locks, projectId }, input.aiCheckpoint);
 }
 function validateCustomTemplate(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new UserError('模板格式不正确。');
@@ -384,8 +386,8 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
           evidence = buildEvidenceLedger({ html: document.html, sources: mergeSources(document.sources, projectFor(document)), brief: document.brief || null });
           document.evidence = { ...evidence, forRevision: document.revision };
           if (action === 'delivery-check') {
-            report = runDeliveryCheck({ document: { ...document, sources: mergeSources(document.sources, projectFor(document)) }, ledger: evidence });
-            document.delivery = { ...report, forRevision: document.revision };
+            const result = runDeliveryCheck({ document: { ...document, sources: mergeSources(document.sources, projectFor(document)) }, ledger: evidence });
+            report = document.delivery = trackDeliveryIssues(result, document.delivery, document.revision);
           }
           revision = document.revision;
           return documents;
@@ -394,6 +396,42 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
       }
       // —— 章节工作台：结构读取、章节调整、任务队列 ——
       const idPath = suffix => new RegExp(`^/api/documents/([a-zA-Z0-9-]{1,80})/${suffix}$`);
+      const annotationRoute = idPath('annotations(?:/([a-zA-Z0-9-]{1,80}))?').exec(path);
+      if (annotationRoute && (annotationRoute[2] ? req.method === 'PATCH' : req.method === 'POST')) {
+        const [, documentId, annotationId] = annotationRoute;
+        const input = await readJson(req, 16_000);
+        let annotations;
+        await store.updateDocuments(documents => {
+          const document = documents.find(item => item.id === documentId);
+          if (!document) throw new UserError('文档不存在。请刷新页面。', 404);
+          if (input?.revision !== document.revision) throw new UserError('文档已更新。请等待保存后重新选取原文。', 409);
+          annotations = updateAnnotations(document.annotations || [], input, annotationId);
+          document.annotations = annotations;
+          document.updatedAt = new Date().toISOString();
+          return documents;
+        });
+        return send(200, { annotations });
+      }
+      const deliveryIssue = idPath('delivery-issues/([a-zA-Z0-9-]{1,80})').exec(path);
+      if (req.method === 'PATCH' && deliveryIssue) {
+        const [, documentId, issueId] = deliveryIssue;
+        const input = await readJson(req, 4000);
+        if (typeof input?.confirmed !== 'boolean') throw new UserError('请提交有效的确认状态。');
+        let report;
+        await store.updateDocuments(documents => {
+          const document = documents.find(item => item.id === documentId);
+          if (!document) throw new UserError('文档不存在。请刷新页面。', 404);
+          report = document.delivery;
+          if (!report || report.forRevision !== document.revision || input.at !== report.at) {
+            throw new UserError('检查结果已更新。请重新检查后再确认。', 409);
+          }
+          const issue = report.issues.find(item => item.id === issueId);
+          if (!issue) throw new UserError('没有找到这条检查问题。', 404);
+          issue.confirmed = input.confirmed;
+          return documents;
+        });
+        return send(200, { report });
+      }
       const sectionsMatch = idPath('sections').exec(path);
       if (req.method === 'GET' && sectionsMatch) {
         const document = store.state.documents.find(item => item.id === sectionsMatch[1]);
@@ -548,7 +586,7 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
               : { ...current };
             next.tasks = (current.tasks || []).map(item => item.id === task.id ? { ...item, status: 'done', finishedAt: new Date().toISOString(), revisionAfter: next.revision, message } : item);
             if (ledger) next.evidence = { ...ledger, forRevision: next.revision };
-            if (report) next.delivery = { ...report, forRevision: next.revision };
+            if (report) next.delivery = trackDeliveryIssues(report, current.delivery, next.revision);
             documents[index] = next;
             updated = next;
             return documents;
@@ -708,7 +746,9 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
         return;
       }
       if (req.method === 'POST' && path === '/api/export/docx') {
-        const input = await readJson(req, maxDocumentBody), buffer = createDocx(string(input.title, 200, '标题'), input.blocks);
+        // PNG export can be larger than the compact images stored in the editor.
+        const input = await readJson(req, 24_000_000);
+        const buffer = createDocx(string(input.title, 200, '标题'), input.blocks, input.images);
         res.writeHead(200, { 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Content-Disposition': "attachment; filename=document.docx" });
         return res.end(buffer);
       }

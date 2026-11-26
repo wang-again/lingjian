@@ -27,9 +27,10 @@ let filter = 'all';
 let lastLedger = null;
 let lastReport = null;
 let view = null;
+let confirmingIssue = false;
 
 const doc = () => app.state.doc;
-const isStale = record => Boolean(record) && doc()?.revision !== record.forRevision;
+const isStale = record => Boolean(record) && (doc()?._dirty || doc()?.revision !== record.forRevision);
 
 function setBadge(id, text, tone = '') {
   const node = $(id);
@@ -133,19 +134,24 @@ async function openEvidence() {
   } catch (error) { app.toast(error.message, true); }
 }
 
-async function openDelivery() {
+function showDelivery(report) {
+  lastReport = report; lastLedger = null; view = 'delivery'; filter = 'all';
+  showPanel('DELIVERY CHECK', '交付体检', '汇总结构、占位符、引用与依据覆盖；结论只覆盖已执行的检查。');
+  renderDelivery();
+  refreshIndicators();
+}
+
+async function openDelivery({ refresh = false } = {}) {
   const current = doc();
   if (!current) { app.toast(t('请先新建或导入文档。')); return; }
+  if (current.delivery && !refresh) { showDelivery(current.delivery); return; }
   if (app.state.busy) { app.toast(t('请先停止生成任务，再运行体检。'), true); return; }
   await app.flushSave();
   try {
     const result = await app.api(`/api/documents/${current.id}/delivery-check`, { method: 'POST', body: { revision: current.revision } });
     current.evidence = { ...result.evidence, forRevision: result.forRevision };
-    current.delivery = { ...result.report, forRevision: result.forRevision };
-    lastLedger = current.evidence; lastReport = current.delivery; view = 'delivery'; filter = 'all';
-    showPanel('DELIVERY CHECK', '交付体检', '汇总结构、占位符、引用与依据覆盖；结论只覆盖已执行的检查。');
-    renderDelivery();
-    refreshIndicators();
+    current.delivery = result.report;
+    if (doc() === current) showDelivery(current.delivery);
   } catch (error) { app.toast(error.message, true); }
 }
 
@@ -201,7 +207,10 @@ function renderEvidence() {
 
 function issueHtml(issue, index) {
   const canLocate = issue.evidence?.[0]?.quote || /第 \d+ 段/.test(issue.location || '');
-  return uiHtml`<article class="issue-row" data-severity="${e(issue.severity)}"><div class="issue-head"><span class="severity-pill" data-tone="${issue.severity === 'blocker' ? 'bad' : issue.severity === 'warn' ? 'warn' : 'info'}">${e(issue.severityLabel)}</span><span class="issue-category">${e(ISSUE_CATEGORY[issue.category] || issue.category)}</span></div><h3>${e(issue.title)}</h3><p>${e(issue.detail)}</p><p class="issue-suggestion">建议：${e(issue.suggestion)}</p>${canLocate ? uiHtml`<button class="text-button claim-locate" data-locate-issue="${index}">${icon('search')}定位正文</button>` : ''}</article>`;
+  const label = issue.change === 'new' ? t('本次新增') : issue.change === 'remaining' ? t('仍存在') : '';
+  const status = issue.confirmed ? t('已确认') : t('待处理');
+  const action = issue.confirmed ? t('重新打开') : t('标记已确认');
+  return uiHtml`<article class="issue-row" data-severity="${e(issue.severity)}"><div class="issue-head"><span class="severity-pill" data-tone="${issue.severity === 'blocker' ? 'bad' : issue.severity === 'warn' ? 'warn' : 'info'}">${e(issue.severityLabel)}</span><span class="issue-category">${e(ISSUE_CATEGORY[issue.category] || issue.category)}</span><span class="issue-category">${e(status)}${label ? ` · ${e(label)}` : ''}</span></div><h3>${e(issue.title)}</h3><p>${e(issue.detail)}</p><p class="issue-suggestion">建议：${e(issue.suggestion)}</p><div class="quality-toolbar">${canLocate ? uiHtml`<button class="text-button claim-locate" data-locate-issue="${index}">${icon('search')}定位正文</button>` : ''}<button class="secondary compact" data-confirm-issue="${index}" ${isStale(lastReport) ? 'disabled' : ''}>${e(action)}</button></div></article>`;
 }
 
 function renderDelivery() {
@@ -211,10 +220,13 @@ function renderDelivery() {
   const groups = [
     ['blocker', '必须处理'], ['warn', '建议确认'], ['info', '提示']
   ].map(([severity, label]) => {
-    const items = report.issues.map((issue, index) => ({ issue, index })).filter(item => item.issue.severity === severity);
+    const items = report.issues.map((issue, index) => ({ issue, index })).filter(({ issue }) =>
+      issue.severity === severity && (filter === 'all' || Boolean(issue.confirmed) === (filter === 'confirmed')));
     if (!items.length) return '';
     return `<section class="issue-group"><h3 class="issue-group-title">${label}<span>${items.length}</span></h3>${items.map(({ issue, index }) => issueHtml(issue, index)).join('')}</section>`;
   }).join('');
+  const confirmed = report.issues.filter(issue => issue.confirmed).length;
+  const filters = [['all', t('全部')], ['pending', t('待处理')], ['confirmed', t('已确认')]];
   $('quality-content').innerHTML = uiHtml`${isStale(report) ? staleBanner() : ''}
     <div class="grade-card" data-grade="${report.grade}">
       <div class="grade-score"><strong>${report.score}</strong><span>/ 100</span></div>
@@ -226,9 +238,33 @@ function renderDelivery() {
       <div class="quality-stat"><strong>${report.stats.citations}</strong><span>引用标记</span></div>
       <div class="quality-stat"><strong>${report.stats.evidenceCoverage}%</strong><span>依据覆盖</span></div>
     </div>
-    ${groups || uiHtml('<div class="quality-empty">已执行的检查没有发现问题。仍请人工确认事实与版式。</div>')}
+    <div class="quality-toolbar"><div class="quality-filters">${filters.map(([key, label]) => `<button data-issue-filter="${key}" aria-pressed="${filter === key}" class="${filter === key ? 'selected' : ''}">${e(label)} ${key === 'all' ? report.issues.length : key === 'pending' ? report.issues.length - confirmed : confirmed}</button>`).join('')}</div></div>
+    ${groups || uiHtml('<div class="quality-empty">当前筛选下没有问题。</div>')}
+    ${report.cleared?.length ? uiHtml`<details class="quality-notes"><summary>${e(t`复检已消失的问题（${report.cleared.length}）`)}</summary><ul>${report.cleared.map(title => `<li>${e(title)}</li>`).join('')}</ul></details>` : ''}
     <details class="quality-notes"><summary>检查范围与依据说明</summary><p>${e(report.scope)}</p><ul>${(report.evidence?.notes || []).map(note => `<li>${e(note)}</li>`).join('')}</ul></details>
     <p class="quality-note">检查于 ${new Date(report.at).toLocaleString(language)} · 得分仅反映已执行检查的严重程度，不代表内容真实或版式合格。</p>`;
+}
+
+async function confirmIssue(button) {
+  const current = doc();
+  const report = lastReport;
+  const issue = report?.issues[Number(button.dataset.confirmIssue)];
+  if (!issue || isStale(report) || confirmingIssue) return;
+  confirmingIssue = true;
+  button.disabled = true;
+  try {
+    await app.flushSave();
+    if (doc() !== current || isStale(report)) throw new Error(t('检查结果已更新。请重新检查后再确认。'));
+    const result = await app.api(`/api/documents/${current.id}/delivery-issues/${issue.id}`, {
+      method: 'PATCH', body: { at: report.at, confirmed: !issue.confirmed }
+    });
+    current.delivery = result.report;
+    if (doc() === current && lastReport === report) {
+      lastReport = result.report;
+      renderDelivery();
+    }
+  } catch (error) { app.toast(error.message, true); }
+  finally { confirmingIssue = false; button.disabled = false; }
 }
 
 function editorBlocks() {
@@ -353,11 +389,15 @@ function bind() {
   $('delivery-button').onclick = () => openDelivery().catch(error => app.toast(error.message, true));
   $('distill-template').onclick = openDistill;
   $('quality-close').onclick = reset;
-  $('quality-refresh').onclick = () => (view === 'delivery' ? openDelivery() : openEvidence());
+  $('quality-refresh').onclick = () => (view === 'delivery' ? openDelivery({ refresh: true }) : openEvidence());
   $('quality-content').addEventListener('click', event => {
-    if (event.target.closest('#quality-stale-refresh')) { (view === 'delivery' ? openDelivery() : openEvidence()); return; }
+    if (event.target.closest('#quality-stale-refresh')) { (view === 'delivery' ? openDelivery({ refresh: true }) : openEvidence()); return; }
     const filterButton = event.target.closest('[data-claim-filter]');
     if (filterButton) { filter = filterButton.dataset.claimFilter; renderEvidence(); return; }
+    const issueFilter = event.target.closest('[data-issue-filter]');
+    if (issueFilter) { filter = issueFilter.dataset.issueFilter; renderDelivery(); return; }
+    const confirmButton = event.target.closest('[data-confirm-issue]');
+    if (confirmButton) { confirmIssue(confirmButton); return; }
     if (event.target.closest('#quality-copy')) { copyLedger(); return; }
     const claimButton = event.target.closest('[data-locate-claim]');
     if (claimButton) {

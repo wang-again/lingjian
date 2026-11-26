@@ -2,7 +2,7 @@ import { t, uiHtml } from './i18n.js';
 import { escapeHtml as e } from './editor.js';
 import { backupFileLimit, backupVolumeTarget } from './backup-format.js';
 
-export const documentBackup = documents => ({ product: 'lingjian', version: 1, exportedAt: new Date().toISOString(), documents: documents.map(d => ({ id: d.id, title: d.title, html: d.html, sources: d.sources, templateId: d.templateId, history: d.history || [], createdAt: d.createdAt, updatedAt: d.updatedAt })) });
+export const documentBackup = documents => ({ product: 'lingjian', version: 1, exportedAt: new Date().toISOString(), documents: documents.map(d => ({ id: d.id, title: d.title, html: d.html, sources: d.sources, templateId: d.templateId, history: d.history || [], ...(d.annotations?.length ? { annotations: d.annotations } : {}), createdAt: d.createdAt, updatedAt: d.updatedAt })) });
 
 export function backupVolumes(documents) {
   const backup = documentBackup(documents);

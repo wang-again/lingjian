@@ -69,36 +69,82 @@ export function markdownToHtml(markdown) {
   flush(); closeList(); if (code !== null) output.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
   return output.join('');
 }
-function inlineRuns(element, inherited = {}) {
+function inlineRuns(element, inherited = {}, withImages = false) {
   if (element.nodeType === Node.TEXT_NODE) return [{ text: element.textContent, ...inherited }];
   if (element.nodeName === 'BR') return [{ text: '\n', ...inherited }];
+  if (withImages && element.nodeName === 'IMG') {
+    return [{
+      image: { src: element.getAttribute('src'), alt: element.alt, width: Number(element.getAttribute('width')) }
+    }];
+  }
   const style = { ...inherited };
   if (['B', 'STRONG'].includes(element.nodeName)) style.bold = true;
   if (['I', 'EM'].includes(element.nodeName)) style.italic = true;
   if (element.nodeName === 'U') style.underline = true;
-  return [...element.childNodes].flatMap(child => inlineRuns(child, style));
+  return [...element.childNodes].flatMap(child => inlineRuns(child, style, withImages));
 }
-export function editorBlocks(element) {
+export function editorBlocks(element, { withImages = false } = {}) {
   const blocks = [];
+  const runsFor = node => inlineRuns(node, {}, withImages);
+  const tableCell = cell => {
+    if (!withImages || !cell.querySelector('img')) return cell.textContent;
+    return { runs: runsFor(cell) };
+  };
   function walk(node) {
     if (node.nodeType === Node.TEXT_NODE) { if (node.textContent.trim()) blocks.push({ type: 'paragraph', text: node.textContent }); return; }
     const name = node.nodeName;
-    if (name === 'TABLE') { blocks.push({ type: 'table', rows: [...node.rows].map(row => [...row.cells].map(cell => cell.textContent)) }); return; }
+    if (name === 'TABLE') { blocks.push({ type: 'table', rows: [...node.rows].map(row => [...row.cells].map(tableCell)) }); return; }
     if (name === 'UL' || name === 'OL') {
       for (const li of [...node.children]) {
         const copy = li.cloneNode(true); copy.querySelectorAll('ul,ol').forEach(child => child.remove());
-        blocks.push({ type: 'list', ordered: name === 'OL', runs: inlineRuns(copy) });
+        blocks.push({ type: 'list', ordered: name === 'OL', runs: runsFor(copy) });
         [...li.children].filter(child => ['UL', 'OL'].includes(child.nodeName)).forEach(walk);
       }
       return;
     }
-    if (/^H[1-4]$/.test(name)) { blocks.push({ type: 'heading', level: Number(name[1]) - (name === 'H1' ? 0 : 1), runs: inlineRuns(node) }); return; }
-    if (name === 'BLOCKQUOTE') { blocks.push({ type: 'quote', runs: inlineRuns(node) }); return; }
+    if (/^H[1-4]$/.test(name)) { blocks.push({ type: 'heading', level: Number(name[1]) - (name === 'H1' ? 0 : 1), runs: runsFor(node) }); return; }
+    if (name === 'BLOCKQUOTE') { blocks.push({ type: 'quote', runs: runsFor(node) }); return; }
     if (name === 'DIV' && [...node.children].some(child => ['DIV', 'P', 'H2', 'H3', 'UL', 'OL', 'TABLE'].includes(child.nodeName))) { [...node.childNodes].forEach(walk); return; }
-    blocks.push({ type: 'paragraph', runs: inlineRuns(node) });
+    blocks.push({ type: 'paragraph', runs: runsFor(node) });
   }
   [...element.childNodes].forEach(walk);
   return blocks;
+}
+
+export async function docxContent(element) {
+  const blocks = editorBlocks(element, { withImages: true });
+  const imageIds = new Map();
+  const images = [];
+  const collect = async runs => {
+    for (const run of runs || []) {
+      if (!run.image) continue;
+      const { src, width, alt } = run.image;
+      if (!imageIds.has(src)) {
+        if (!safeImageSource(src)) throw new Error('正文含无法导出的图片。');
+        const picture = new Image();
+        picture.src = src;
+        try { await picture.decode(); }
+        catch { throw new Error('正文含无法读取的图片。'); }
+        const scale = Math.min(1, 1200 / Math.max(picture.naturalWidth, picture.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(picture.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(picture.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(picture, 0, 0, canvas.width, canvas.height);
+        imageIds.set(src, { index: images.length, naturalWidth: picture.naturalWidth });
+        images.push(canvas.toDataURL('image/png'));
+      }
+      const { index, naturalWidth } = imageIds.get(src);
+      run.image = { index, width: width || naturalWidth, alt };
+    }
+  };
+  for (const block of blocks) {
+    if (block.type === 'table') {
+      for (const row of block.rows) for (const cell of row) await collect(cell?.runs);
+    } else {
+      await collect(block.runs);
+    }
+  }
+  return { blocks, images };
 }
 export function editorMarkdown(element) {
   const text = runs => (runs || []).map(run => run.bold ? `**${run.text}**` : run.italic ? `*${run.text}*` : run.text).join('');
