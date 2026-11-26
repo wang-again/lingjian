@@ -2,11 +2,14 @@ import { randomInt } from 'node:crypto';
 import { createApp } from '../../server.mjs';
 
 // On Windows, listen(0) can select ports such as 6000 that fetch blocks.
-// Use a safe range while still retrying when another process holds a port.
+// Use a safe range and retry ports that are busy or reserved by Windows.
 async function onHttpPort(start) {
   for (let attempt = 0; attempt < 20; attempt++) {
     try { return await start(randomInt(20000, 60000)); }
-    catch (error) { if (error.code !== 'EADDRINUSE' || attempt === 19) throw error; }
+    catch (error) {
+      const unavailable = error.code === 'EADDRINUSE' || (process.platform === 'win32' && error.code === 'EACCES');
+      if (!unavailable || attempt === 19) throw error;
+    }
   }
 }
 

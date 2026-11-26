@@ -1,0 +1,2 @@
+# The template catalog verifies the exact bytes of downloadable Markdown files.
+resources/templates/*-markdown.md -text
