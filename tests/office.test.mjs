@@ -17,6 +17,37 @@ const fixtures=join(project,'tests/fixtures/office');
 const python=process.env.OFFICE_PYTHON||join(project,'.venv-office',process.platform==='win32'?'Scripts/python.exe':'bin/python');
 async function cleanup(path){assert.equal(dirname(resolve(path)),resolve(tmpdir()));assert.ok(basename(path).startsWith('yanzhi-office-test-'));await rm(path,{recursive:true,force:true,maxRetries:10,retryDelay:100});}
 
+test('DOCX 版式预览校验文件边界和转换器状态，并渲染真实中文 PDF 页面',{skip:integrationMissing},async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'yanzhi-office-test-')),app=await createTestApp({dataDir:directory});
+  t.after(async()=>{await app.close();await cleanup(directory);});
+  const bootstrap=await (await fetch(`${app.url}/api/bootstrap`)).json();
+  const bytes=await readFile(join(project,'resources/templates/zh-notice-document.docx'));
+  const upload=await app.office.upload('通知.docx',bytes.toString('base64'));
+  const post=body=>fetch(`${app.url}/api/office/docx-preview`,{method:'POST',
+    headers:{'Content-Type':'application/json','X-Workspace-Token':bootstrap.token},body:JSON.stringify(body)});
+  assert.equal((await post({id:'../../outside.docx'})).status,400);
+  assert.equal((await post({id:upload.id,start:0})).status,400);
+  const originalExecutable=process.env.LINGJIAN_SOFFICE_PATH;
+  try {
+    process.env.LINGJIAN_SOFFICE_PATH=join(directory,'missing-soffice.exe');
+    const unavailable=await post({id:upload.id});
+    assert.equal(unavailable.status,503);
+    assert.match((await unavailable.json()).error,/LibreOffice/);
+  } finally {
+    if(originalExecutable===undefined)delete process.env.LINGJIAN_SOFFICE_PATH;
+    else process.env.LINGJIAN_SOFFICE_PATH=originalExecutable;
+  }
+  const file=await app.office.safePath(upload.id);
+  assert.deepEqual(await readFile(file),bytes);
+  for(const name of ['zh-notice-print.pdf','zh-work-plan-print.pdf']){
+    const pdf=join(project,'resources/templates',name);
+    const {stdout}=await promisify(execFile)(python,['-X','utf8',join(project,'tools/render_docx_preview.py'),pdf,'1']);
+    const result=JSON.parse(stdout);
+    assert.ok(result.total>0);assert.equal(result.pages[0].page,1);
+    assert.equal(Buffer.from(result.pages[0].png,'base64').subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  }
+});
+
 test('Office 真实工具集成：读写编辑四种格式、路径边界与副本保护',{skip:integrationMissing,timeout:90000},async t=>{
   const directory=await mkdtemp(join(tmpdir(),'yanzhi-office-test-')),office=new OfficeService(directory,{python});
   t.after(async()=>{office.close();await cleanup(directory);});

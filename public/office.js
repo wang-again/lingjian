@@ -22,11 +22,17 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
     files=result.files; selected.add(result.file.id); renderFiles(); return result.file;
   }
   async function uploadAndExtract(file) { const uploaded=await uploadFile(file); return {...await api('/api/office/extract',{method:'POST',body:{id:uploaded.id}}),name:file.name}; }
+  function updateSelection() {
+    $('office-selected').textContent=selected.size?t`已选择 ${selected.size} 个文件`:t('未选择文件 · 也可直接创建新文件');
+    const onlyFile = selected.size === 1 && files.find(file => selected.has(file.id));
+    $('office-ocr-field').hidden = onlyFile?.extension?.toLowerCase() !== '.pdf';
+    if ($('office-ocr-field').hidden) $('office-consistency-ocr').checked = false;
+  }
   function renderFiles() {
     selected=new Set([...selected].filter(id=>files.some(file=>file.id===id)));
     const visibleFiles=files.filter(file=>!/[.]check_[a-f0-9]{8}[.]json$/i.test(file.id));
     $('office-file-count').textContent=visibleFiles.length;
-    $('office-selected').textContent=selected.size?t`已选择 ${selected.size} 个文件`:t('未选择文件 · 也可直接创建新文件');
+    updateSelection();
     const query = $('file-name-filter').value.trim().toLowerCase();
     const matches = visibleFiles.filter(file => file.name.toLowerCase().includes(query));
     const rows = matches.map(file => {
@@ -41,7 +47,7 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
           <div class="office-file-actions"><small>${size(file.size)}</small>
             ${image ? uiHtml`<a href="${fileURL(file.id,true)}" target="_blank" rel="noopener">预览</a>` : ''}
             ${type === 'JSON' ? '' : uiHtml`<button data-office-import="${id}">${image ? t('识别文字') : t('读入编辑器')}</button><button data-office-source="${id}">作为资料</button>`}
-            ${type === 'DOCX' ? uiHtml`<button data-office-check="${id}">交付检查</button>` : ''}
+            ${type === 'DOCX' ? uiHtml`<button data-office-check="${id}">交付检查</button><button data-docx-preview="${id}">版式预览</button>` : ''}
             <a href="${fileURL(file.id)}" download aria-label="下载 ${name}">${icon('download')}下载</a>
           </div>
         </details></div>`;
@@ -110,6 +116,24 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
       $('office-result-close').onclick=()=>{$('office-tool-result').hidden=true;};
     }
   }
+  async function showDocxPreview(id, start, button) {
+    button.disabled = true;
+    toast(t('正在渲染 DOCX 页面…'));
+    try {
+      const preview = await api('/api/office/docx-preview', { method: 'POST', body: { id, start } });
+      const result = $('office-tool-result');
+      const last = preview.pages.at(-1).page;
+      result.hidden = false;
+      result.innerHTML = uiHtml`<div class="office-result-title"><strong>DOCX 版式预览 · ${e(files.find(file => file.id === id)?.name || id)}</strong><button class="text-button" id="office-result-close">收起</button></div><p>第 ${start}–${last} 页，共 ${preview.total} 页</p><p>由本机 LibreOffice 渲染，请核对分页、字体和表格。</p>${preview.pages.map(page => uiHtml`<figure><figcaption>第 ${page.page} 页</figcaption><img class="office-preview-image" src="data:image/png;base64,${e(page.png)}" alt="DOCX 页面预览"></figure>`).join('')}<div class="office-file-actions">${start > 1 ? uiHtml`<button data-docx-page="${Math.max(1, start - 4)}">上一组</button>` : ''}${last < preview.total ? uiHtml`<button data-docx-page="${last + 1}">下一组</button>` : ''}</div>`;
+      $('office-result-close').onclick = () => { result.hidden = true; };
+      result.querySelectorAll('[data-docx-page]').forEach(page => {
+        page.onclick = () => showDocxPreview(id, Number(page.dataset.docxPage), page);
+      });
+      result.scrollIntoView({ block: 'nearest' });
+      toast(t('版式预览已生成'));
+    } catch (error) { toast(error.message, true); }
+    finally { button.disabled = false; }
+  }
   async function useFile(id,asSource){
     toast(t('正在提取文件内容…'));
     try{
@@ -125,7 +149,7 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
   function consistencyHtml(plan) {
     if(plan.kind!=='consistency')return '';
     const coverage=plan.coverage,category={amount:'金额与单位',date:'日期',name:'名称',term:'术语',numbering:'编号',other:'其他'};
-    return uiHtml`<div class="consistency-coverage"><strong>${coverage.complete?t('已覆盖全部可提取文字位置'):t('本次覆盖不完整')}</strong><p>已检查 ${e(coverage.read_locations)} / ${e(coverage.total_locations)} 个可提取位置</p>${coverage.notes.map(note=>`<p>${e(note)}</p>`).join('')}</div>${plan.findings.map(finding=>uiHtml`<article class="consistency-finding"><h4>${e(category[finding.category])} · ${e(finding.title)}</h4><strong>${finding.status==='suggested'?t('有修改建议'):t('待确认')}</strong><p>${e(finding.explanation)}</p>${finding.evidence.map(item=>`<blockquote><strong>${e(item.position)}</strong><p>${e(item.quote)}</p></blockquote>`).join('')}<p><strong>建议：</strong>${e(finding.suggestion)}</p>${finding.basis?uiHtml`<p><strong>统一依据 · ${e(finding.basis.position)}：</strong>${e(finding.basis.quote)}</p>`:''}${finding.operation_ids.length?uiHtml`<p>对应下方第 ${finding.operation_ids.map(e).join('、')} 项修改，请逐条审阅。</p>`:uiHtml('<p>此项仅供核对，不包含可直接应用的修改。</p>')}</article>`).join('')}`;
+    return uiHtml`<div class="consistency-coverage"><strong>${coverage.complete?t('已覆盖全部可提取文字位置'):t('本次覆盖不完整')}</strong><p>已检查 ${e(coverage.read_locations)} / ${e(coverage.total_locations)} 个可提取位置</p>${(coverage.ocr_pages||[]).map(page=>uiHtml`<p>OCR · 第 ${page.page} 页${Number.isFinite(page.confidence)?t` · 最低识别置信度 ${Math.round(page.confidence*100)}%`:''}${page.needs_review?t(' · 请核对原图'):''}</p>`).join('')}${coverage.notes.map(note=>`<p>${e(note)}</p>`).join('')}</div>${plan.findings.map(finding=>uiHtml`<article class="consistency-finding"><h4>${e(category[finding.category])} · ${e(finding.title)}</h4><strong>${finding.status==='suggested'?t('有修改建议'):t('待确认')}</strong><p>${e(finding.explanation)}</p>${finding.evidence.map(item=>`<blockquote><strong>${e(item.position)}</strong>${item.ocr && Number.isFinite(item.confidence) ? t` · 最低识别置信度 ${Math.round(item.confidence * 100)}%` : ''}${item.needs_review ? t(' · 请核对原图') : ''}<p>${e(item.quote)}</p></blockquote>`).join('')}<p><strong>建议：</strong>${e(finding.suggestion)}</p>${finding.basis?uiHtml`<p><strong>统一依据 · ${e(finding.basis.position)}：</strong>${e(finding.basis.quote)}</p>`:''}${finding.operation_ids.length?uiHtml`<p>对应下方第 ${finding.operation_ids.map(e).join('、')} 项修改，请逐条审阅。</p>`:uiHtml('<p>此项仅供核对，不包含可直接应用的修改。</p>')}</article>`).join('')}`;
   }
   function renderReview(plan) {
     review=plan;
@@ -186,7 +210,7 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
     try{
       await beforeAgent();
       submitted = true;
-      const response=await api('/api/office/agent',{method:'POST',raw:true,signal:agentController.signal,body:{providerId:context.providerId,prompt,files:[...selected],review:reviewMode,consistency:consistencyMode,documentId:context.documentId,includeDocument:!reviewMode&&$('office-include-document').checked}});
+      const response=await api('/api/office/agent',{method:'POST',raw:true,signal:agentController.signal,body:{providerId:context.providerId,prompt,files:[...selected],review:reviewMode,consistency:consistencyMode,ocr:consistencyMode&&!$('office-ocr-field').hidden&&$('office-consistency-ocr').checked,documentId:context.documentId,includeDocument:!reviewMode&&$('office-include-document').checked}});
       submission('done');
       let doneEvent=false,reviewRequired=false;
       for await (const { kind, data } of responseEvents(response.body)) {
@@ -230,8 +254,8 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
   $('file-name-filter').oninput=renderFiles;
   $('office-dropzone').ondragover=event=>{event.preventDefault();$('office-dropzone').classList.add('dragging');};$('office-dropzone').ondragleave=()=>$('office-dropzone').classList.remove('dragging');
   $('office-dropzone').ondrop=event=>{event.preventDefault();$('office-dropzone').classList.remove('dragging');uploadFiles([...event.dataTransfer.files]);};
-  $('office-file-list').onchange=event=>{if(event.target.dataset.officeSelect){event.target.checked?selected.add(event.target.dataset.officeSelect):selected.delete(event.target.dataset.officeSelect);$('office-selected').textContent=t`已选择 ${selected.size} 个文件`;}};
-  $('office-file-list').onclick=async event=>{const edit=event.target.closest('[data-office-import]'),source=event.target.closest('[data-office-source]'),check=event.target.closest('[data-office-check]');if(edit)useFile(edit.dataset.officeImport,false);if(source)useFile(source.dataset.officeSource,true);if(check){check.disabled=true;try{const result=await api('/api/office/call',{method:'POST',body:{name:'check_docx',arguments:{file_path:check.dataset.officeCheck}}});files=result.files;renderFiles();renderResult('check_docx',result);}catch(error){toast(error.message,true);}finally{check.disabled=false;}}};
+  $('office-file-list').onchange=event=>{if(event.target.dataset.officeSelect){event.target.checked?selected.add(event.target.dataset.officeSelect):selected.delete(event.target.dataset.officeSelect);updateSelection();}};
+  $('office-file-list').onclick=async event=>{const edit=event.target.closest('[data-office-import]'),source=event.target.closest('[data-office-source]'),check=event.target.closest('[data-office-check]'),preview=event.target.closest('[data-docx-preview]');if(edit)useFile(edit.dataset.officeImport,false);if(source)useFile(source.dataset.officeSource,true);if(preview)await showDocxPreview(preview.dataset.docxPreview,1,preview);if(check){check.disabled=true;try{const result=await api('/api/office/call',{method:'POST',body:{name:'check_docx',arguments:{file_path:check.dataset.officeCheck}}});files=result.files;renderFiles();renderResult('check_docx',result);}catch(error){toast(error.message,true);}finally{check.disabled=false;}}};
   $('office-tool-category').onchange=renderTools;$('office-tool-grid').onclick=event=>{const button=event.target.closest('[data-office-tool]');if(button)showTool(button.dataset.officeTool);};
   $('office-files-tab').onclick=()=>{$('office-files-panel').hidden=false;$('office-tools-panel').hidden=true;$('office-files-tab').setAttribute('aria-pressed','true');$('office-tools-tab').setAttribute('aria-pressed','false');};
   $('office-tools-tab').onclick=()=>{$('office-files-panel').hidden=true;$('office-tools-panel').hidden=false;$('office-files-tab').setAttribute('aria-pressed','false');$('office-tools-tab').setAttribute('aria-pressed','true');};

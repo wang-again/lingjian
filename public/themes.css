@@ -58,7 +58,8 @@
 .auth-card .theme-picker { display: inline-flex; margin: 0; font-size: 14px; }
 .auth-card .language-picker, .writing-language { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
 .writing-language { justify-content: space-between; margin: 10px 0; color: var(--muted); }
-.language-picker select, .writing-language select { min-height: 32px; max-width: 100%; padding: 4px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+.language-picker select, .writing-language select, .writing-language input { min-height: 32px; max-width: 100%; padding: 4px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+.writing-language input { min-width: 0; width: 58%; }
 @media (max-width: 720px) {
   .topbar-right { gap: 8px; }
   .theme-picker { gap: 4px; }

@@ -24,6 +24,7 @@ test('一致性检查真实四格式、双协议、证据核验、选择应用�
   const directory=await mkdtemp(join(tmpdir(),'lingjian-consistency-')),app=await createTestApp({dataDir:directory});
   t.after(async()=>{await app.close();assert.equal(dirname(resolve(directory)),resolve(tmpdir()));assert.ok(basename(directory).startsWith('lingjian-consistency-'));await rm(directory,{recursive:true,force:true,maxRetries:10,retryDelay:100});});
   await promisify(execFile)(python,['-B',resolve('tests/fixtures/consistency_samples.py'),join(directory,'fixtures')],{windowsHide:true});
+  await promisify(execFile)(python,['-B',resolve('tests/fixtures/ocr_samples.py'),join(directory,'fixtures')],{windowsHide:true});
   let mode='normal',calls=0;
   const mock=http.createServer(async(req,res)=>{
     let raw='';for await(const chunk of req)raw+=chunk;const input=JSON.parse(raw),responses=req.url.endsWith('/responses'),history=responses?input.input:input.messages;
@@ -33,6 +34,13 @@ test('一致性检查真实四格式、双协议、证据核验、选择应用�
     const ext=context.selectedFiles[0].id.split('.').at(-1);
     const quote=item=>({location:item.location,quote:item.text});
     let findings=[];
+    if(mode==='mixed_ocr') {
+      const scan=doc.find(item=>item.ocr), native=doc.find(item=>!item.ocr);
+      assert.match(scan.text,/12345/);assert.match(native.text,/67890/);
+      assert.deepEqual(context.coverage.ocr_pages.map(item=>item.page),[1]);assert.equal(context.coverage.complete,true);
+      assert.equal(scan.page,1);assert.ok(scan.confidence>0&&scan.confidence<=1);
+      findings=[{category:'other',title:'识别出的编号待核对',explanation:'涉及一处扫描识别结果。',suggestion:'对照原件核实编号。',evidence:[quote(scan),quote(native)],operations:[]}];
+    }
     if(mode!=='empty'&&mode!=='stale_empty'&&canonical&&target){
       const operation={type:ext==='xlsx'?'set_spreadsheet_cell':ext==='pptx'?'replace_slide_text':'replace_text',location:target.location,find:ext==='xlsx'?target.text:'200',replace:ext==='xlsx'?'项目总预算为100万元。':'100',reason:'根据文内明确规定的预算口径统一',...(ext==='xlsx'?{value_type:'string'}:{})};
       findings=[{category:'amount',title:'项目总预算金额冲突',explanation:'两处都指向项目总预算，金额分别为100万元和200万元。',suggestion:'按文内明确口径统一为100万元。',evidence:[quote(canonical),quote(target)],basis:{kind:'document_evidence',location:canonical.location,quote:'项目总预算以100万元为准'},operations:[operation]}];
@@ -58,10 +66,12 @@ test('一致性检查真实四格式、双协议、证据核验、选择应用�
   const post=(path,body,authorized=true)=>fetch(`${app.url}${path}`,{method:'POST',headers:{'Content-Type':'application/json',...(authorized?{'X-Workspace-Token':token}:{})},body:JSON.stringify(body)});
   const files={};for(const ext of ['docx','pdf','xlsx','pptx'])files[ext]=await app.office.upload(`一致性.${ext}`,(await readFile(join(directory,`fixtures/consistency.${ext}`))).toString('base64'));
   const scan=await app.office.upload('扫描.pdf',(await readFile(join(directory,'fixtures/scan.pdf'))).toString('base64'));
+  const mixedBytes=await readFile(join(directory,'fixtures/mixed.pdf'));
+  const mixed=await app.office.upload('混合.pdf',mixedBytes.toString('base64'));
   const truncated=await app.office.upload('长段落.docx',(await readFile(join(directory,'fixtures/truncated.docx'))).toString('base64'));
-  async function check(file,protocol='chat'){
+  async function check(file,protocol='chat',ocr=false){
     const provider=validateProvider({id:'consistency-provider',name:'fixture',model:'fixture',protocol,baseUrl:`http://127.0.0.1:${mock.address().port}/v1`});app.store.state.providers=[provider];
-    const response=await post('/api/office/agent',{providerId:provider.id,files:[file.id],consistency:true,prompt:'检查全文金额、日期、名称和术语的前后一致性'});assert.equal(response.status,200);
+    const response=await post('/api/office/agent',{providerId:provider.id,files:[file.id],consistency:true,ocr,prompt:'检查全文金额、日期、名称和术语的前后一致性'});assert.equal(response.status,200);
     const events=(await response.text()).split('\n\n').filter(block=>block.startsWith('event:')).map(block=>({kind:/^event: (.+)$/m.exec(block)[1],data:JSON.parse(/^data: (.+)$/m.exec(block)[1])}));
     return {events,plan:events.find(item=>item.kind==='review')?.data,error:events.find(item=>item.kind==='error')?.data};
   }
@@ -91,6 +101,15 @@ test('一致性检查真实四格式、双协议、证据核验、选择应用�
     mode='empty';const before=calls;const scanned=await check(scan);assert.equal(calls,before);assert.equal(scanned.plan.coverage.complete,false);assert.equal(scanned.plan.operations.length,0);
     const long=await check(truncated);assert.equal(long.plan.coverage.complete,false);assert.equal(long.plan.coverage.truncated_locations,1);
     const path=await app.office.safePath(files.docx.id),original=await readFile(path);mode='stale_empty';const stale=await check(files.docx);assert.equal(stale.plan,undefined);assert.match(stale.error.message,/原文已变化/);await writeFile(path,original);
+  });
+  await t.test('选择 OCR 后只纳入 PDF 无文字页，报告保留识别置信度且原件不变',async()=>{
+    mode='mixed_ocr';const {plan,error}=await check(mixed,'chat',true);
+    assert.equal(error,undefined);assert.equal(plan.findings.length,1);assert.deepEqual(plan.coverage.ocr_pages.map(item=>item.page),[1]);
+    const evidence=plan.findings[0].evidence[0];
+    assert.equal(evidence.ocr,true);assert.equal(evidence.position,'第 1 页 · OCR');assert.ok(evidence.confidence>0);
+    assert.equal(plan.coverage.ocr_pages[0].confidence,evidence.confidence);
+    assert.equal(plan.findings[0].status,'needs_confirmation');assert.deepEqual(plan.operations,[]);
+    assert.deepEqual(await readFile(await app.office.safePath(mixed.id)),mixedBytes);
   });
   assert.equal((await post('/api/office/agent',{providerId:'consistency-provider',files:[files.docx.id],consistency:true},false)).status,403);
 });

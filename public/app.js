@@ -150,6 +150,7 @@ function renderCurrent() {
   $('template-badge').textContent = template ? t`模板 · ${template.title}` : '';
   $('template-badge').hidden = !template;
   $('save-status').textContent = t('已保存');
+  $('source-query').value = '';
   clearFragment(); $('sent-fragment').hidden = true; $('selection-status').textContent = t('A4 文档 · 自由编辑');
   closeAiReport(); refreshAiControls();
   state.result = null; $('generation-result').hidden = true; $('assistant-welcome').hidden = false;
@@ -482,8 +483,7 @@ function renderSources() {
   const sources = state.doc?.sources || [];
   $('source-count').textContent = sources.length;
   $('sources-list').innerHTML = sources.map(source => uiHtml`<div class="source-item"><label><input type="checkbox" data-source-toggle="${e(source.id)}" ${source.enabled !== false ? 'checked' : ''}>${icon('doc')}<span><strong>${e(source.name)}</strong><small>${source.text.length.toLocaleString()} 字符 · ${source.enabled !== false ? t('随任务发送') : t('已停用')}</small></span></label><button class="icon-button" data-remove-source="${e(source.id)}" aria-label="移除资料 ${e(source.name)}">${icon('close')}</button></div>`).join('') || uiHtml('<p class="sources-empty">还没有添加资料。<br>项目介绍、会议记录、数据说明都可以。</p>');
-  const enabled = sources.filter(source => source.enabled !== false).length;
-  $('context-label').textContent = enabled ? t`发送正文及 ${enabled} 份资料至模型` : t('发送正文至模型');
+  updateWritingNote();
 }
 function updateWritingNote() {
   const notes = {
@@ -493,7 +493,13 @@ function updateWritingNote() {
     outline: '大纲将在单独的视图中打开。',
     review: '审阅意见将在单独的视图中打开。'
   };
-  document.querySelector('.composer-note').textContent = notes[$('task-mode').value];
+  const mode = $('task-mode').value;
+  document.querySelector('.composer-note').textContent = t(notes[mode]);
+  const canSearch = mode === 'write' || mode === 'rewrite';
+  $('source-query-field').hidden = !canSearch;
+  $('context-label').textContent = canSearch && $('source-query').value.trim()
+    ? t('按关键词查找启用资料')
+    : mode === 'rewrite' ? t('发送选区及必要上下文') : t('发送正文及启用资料');
 }
 function switchAssistant(tab) {
   const sources = tab === 'sources'; $('writing-tab').setAttribute('aria-selected', String(!sources)); $('sources-tab').setAttribute('aria-selected', String(sources));
@@ -662,6 +668,7 @@ function setBusy(busy) {
   state.busy = busy; $('generate-button').hidden = busy; $('stop-button').hidden = !busy;
   $('undo-ai-edit').disabled = busy;
   $('task-mode').disabled = busy; $('assistant-model').disabled = busy; 
+  $('source-query').disabled = busy;
   $('writing-prompt').disabled = busy; document.body.classList.toggle('is-generating', busy);
 }
 function renderResult(result) {
@@ -734,7 +741,7 @@ async function generate() {
   }
   try {
     await flushSave();
-    const response=await api('/api/generate',{method:'POST',signal:generationController.signal,raw:true,body:{providerId:state.activeProviderId,documentId:doc.id,revision:doc.revision,prompt,mode,outputLanguage:$('output-language').value,selection:mode==='rewrite'?selection.text:'',fragment:mode==='rewrite'?{rich:selection.rich,images:selection.images}:undefined}});
+    const response=await api('/api/generate',{method:'POST',signal:generationController.signal,raw:true,body:{providerId:state.activeProviderId,documentId:doc.id,revision:doc.revision,prompt,mode,outputLanguage:$('output-language').value,sourceQuery:['write','rewrite'].includes(mode)?$('source-query').value.trim():undefined,selection:mode==='rewrite'?selection.text:'',fragment:mode==='rewrite'?{rich:selection.rich,images:selection.images,anchorText:selection.rich?selection.range.toString().slice(0,1000):undefined}:undefined}});
     submission('done');
     for await (const event of responseEvents(response.body)) {
       if(event.kind==='activity') activity.update(event.data);
@@ -752,6 +759,7 @@ async function generate() {
       if(event.kind==='usage') {
         const usage=event.data,input=usage.prompt_tokens??usage.input_tokens,output=usage.completion_tokens??usage.output_tokens;
         if(input!==undefined||output!==undefined)usageText=t`服务商用量 · 输入 ${input??'—'} / 输出 ${output??'—'} Token`;
+        if(Number.isFinite(usage.cached_tokens))usageText+=` · ${t`缓存输入 ${usage.cached_tokens} Token`}`;
       }
       if(event.kind==='error')throw Error(event.data.message);
       if(event.kind==='files') {
@@ -896,6 +904,7 @@ function bindEvents() {
   bindEditorContextMenu($('editor'));
   $('remove-fragment').onclick = () => clearFragment();
   $('task-mode').onchange = () => clearFragment({ keepRewrite: true });
+  $('source-query').oninput = updateWritingNote;
   $('insert-image').onmousedown = event => event.preventDefault();
   $('insert-image').onclick = () => $('image-file').click();
   $('image-file').onchange = async event => { try { if (event.target.files[0]) await insertImage(event.target.files[0]); } catch (error) { toast(error.message, true); } finally { event.target.value = ''; } };

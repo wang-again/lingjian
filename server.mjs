@@ -202,7 +202,7 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
       }
       if (accounts) {
         accounts.limit(`api:${session.user.id}`, 300, 60_000);
-        const expensive = req.method !== 'GET' && /\/api\/(generate|providers\/(test|models)|office\/(agent|call|extract|upload|review\/apply))$/.test(path);
+        const expensive = req.method !== 'GET' && /\/api\/(generate|providers\/(test|models)|office\/(agent|call|extract|upload|docx-preview|review\/apply))$/.test(path);
         if (expensive) {
           accounts.limit(`work:${session.user.id}`, 30, 60_000);
           const userId = session.user.id, activeForUser = activeByUser.get(userId) || 0;
@@ -239,7 +239,7 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
         return credential?.key || vault.get(config.id, origin) || '';
       };
       if (await handleTemplates({req,res,url,send,readJson,office,customTemplates:store.state.customTemplates||[]})) return;
-      if (await handleOffice({req,res,url,send,readJson,office,providers:store.state.providers,secrets,documents:store.state.documents,assertProvider,keyForProvider: config => keyFor({}, config)})) return;
+      if (await handleOffice({req,res,url,send,readJson,office,providers:store.state.providers,secrets,documents:store.state.documents,signal:requestAbort.signal,assertProvider,keyForProvider: config => keyFor({}, config)})) return;
       if (req.method === 'GET' && path === '/api/bootstrap') {
         // 工作区解析失败时已隔离原文件；这里把备份路径提示一次，避免用户以为数据凭空消失。
         const notice = store.recovered && !recoveryNotified.has(store)

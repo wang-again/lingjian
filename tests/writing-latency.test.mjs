@@ -34,11 +34,11 @@ test('润色、续写、大纲、审阅均单次请求开始流式输出，保�
     const before = requests.length, events = [];
     const text = await runWritingTask(config(protocol), '', document, { mode, prompt: '按当前任务处理', selection: mode === 'rewrite' ? '预算 100 元' : '' }, { onEvent: (kind, data) => events.push({ kind, data }) });
     assert.equal(requests.length - before, 1); assert.equal(requests.at(-1).tools, undefined); assert.equal(requests.at(-1).stream, true);
-    assert.equal(text, '改写正文'); assert.ok(JSON.stringify(requests.at(-1)).includes('已确认预算 100 元')); assert.ok(!JSON.stringify(requests.at(-1)).includes('hidden-source'));
+    assert.equal(text, '改写正文'); assert.equal(JSON.stringify(requests.at(-1)).includes('已确认预算 100 元'), mode !== 'rewrite'); assert.ok(!JSON.stringify(requests.at(-1)).includes('hidden-source'));
     const history = requests.at(-1).messages || requests.at(-1).input;
     const context = JSON.parse(history[1].content); assert.equal(context.selectedText, mode === 'rewrite' ? '预算 100 元' : '');
     const timeline = events.filter(item => item.kind === 'activity').map(item => item.data);
-    assert.deepEqual(timeline[0].files, ['依据.txt']);
+    assert.deepEqual(timeline[0].files, mode === 'rewrite' ? [] : ['依据.txt']);
     assert.equal(timeline[0].label, '准备写作上下文');
     assert.equal(timeline[1].status, 'running');
     assert.equal(timeline.at(-1).id, timeline[1].id);
@@ -46,6 +46,46 @@ test('润色、续写、大纲、审阅均单次请求开始流式输出，保�
     assert.doesNotMatch(JSON.stringify(events), /private-thinking|hidden-source|未启用|已确认预算/);
     if (protocol === 'chat') assert.equal(events.filter(item => item.kind === 'step' && item.data.phase === 'thinking').length, 1);
   }
+});
+
+test('定向写作精简请求并保留指定来源，润色只带可定位的近邻', async t => {
+  const { requests, config } = await model(t, (input, res) => {
+    const characters = JSON.stringify(input.messages || input.input).length;
+    res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+    res.end(`data: ${JSON.stringify({ choices: [{ delta: { content: '正文' }, finish_reason: 'stop' }], usage: { prompt_tokens: characters, completion_tokens: 2, prompt_tokens_details: { cached_tokens: 17 } } })}\n\ndata: [DONE]\n\n`);
+  });
+  const fixture = {
+    title: '预算通知',
+    html: `<p>无关正文${'远'.repeat(2000)}</p><p>现场语境</p><p>请确认预算</p><p>下一段语境</p>`,
+    sources: [
+      { name: '预算.txt', text: `${'远'.repeat(6000)}项目预算 100 万${'远'.repeat(6000)}` },
+      { name: '指定依据.txt', text: '责任人为财务组' },
+      { name: '无关.txt', text: '无关资料内容' },
+      { name: '停用.txt', text: '项目预算 300 万', enabled: false }
+    ]
+  };
+  const write = { mode: 'write', skillId: 'none', prompt: '写通知并参考指定依据.txt' };
+  const usage = [];
+  const run = input => runWritingTask(config('chat'), '', fixture, input, { onEvent: (kind, data) => { if (kind === 'usage') usage.push(data); } });
+  const context = () => JSON.parse(requests.at(-1).messages[1].content);
+  await run(write);
+  await run({ ...write, sourceQuery: '项目预算' });
+  assert.deepEqual(context().sources.map(source => source.name), ['预算.txt', '指定依据.txt']);
+  assert.match(context().sources[0].text, /项目预算 100 万/);
+  assert.equal(context().sources[0].excerpt, true);
+  assert.equal(context().sources[1].text, '责任人为财务组');
+  assert.ok(usage[1].input_tokens < usage[0].input_tokens);
+  assert.equal(usage[1].cached_tokens, 17);
+  await run({ ...write, sourceQuery: 'zzz-no-match' });
+  assert.equal(context().sourceScope, 'no-match');
+  assert.equal(context().sources.length, 3);
+  await run({ mode: 'rewrite', prompt: '润色', selection: '请确认预算' });
+  assert.equal(context().currentDocument, '');
+  assert.match(context().surroundingText.before, /现场语境/);
+  assert.match(context().surroundingText.after, /下一段语境/);
+  assert.equal(context().sources.length, 0);
+  await run({ mode: 'rewrite', prompt: '按照资料核对', selection: '请确认预算' });
+  assert.equal(context().sources.length, 3);
 });
 
 test('模型标记选齐技能后直接写作，不再调用准备确认轮次', async t => {
