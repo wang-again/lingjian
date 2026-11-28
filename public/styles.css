@@ -376,6 +376,16 @@
 .annotation-list{overflow:auto;padding:12px;min-height:0;overflow-wrap:anywhere}
 .annotation-note{margin:10px 0;white-space:pre-wrap;line-height:1.6}
 .annotation-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.task-activity{margin:10px 0;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.task-activity summary{cursor:pointer;padding:10px 12px;font-size:14px;font-weight:600}
+.task-activity ol{list-style:none;padding:0 12px 10px;margin:0;max-height:240px;overflow:auto;scrollbar-width:thin}
+.task-activity li{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:baseline;padding:7px 0 7px 10px;border-left:2px solid var(--accent-border);font-size:14px;line-height:1.55;overflow-wrap:anywhere}
+.task-activity li[data-status="running"]{border-left-color:var(--action)}
+.task-activity li[data-status="failed"] .activity-status{font-weight:600;color:var(--ink)}
+.activity-status,.task-activity small{color:var(--muted);font-size:13px}
+.task-activity small{grid-column:1/-1}
+.studio-activity{max-width:980px;margin:14px auto}
+@media print{.task-activity{display:none!important}}
 .quality-filters{display:flex;gap:6px;flex-wrap:wrap}
 .quality-filters button{font-size:13px;padding:7px 11px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--muted)}
 .quality-filters button.selected{background:var(--action);border-color:var(--action);color:var(--on-action)}

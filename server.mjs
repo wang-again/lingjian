@@ -18,6 +18,7 @@ import { UserError, validateProvider, runModel, endpointFor, listProviderModels,
 import { providerPresets } from './lib/provider-presets.mjs';
 import { createDocx } from './lib/docx.mjs';
 import { runWritingTask } from './lib/writing.mjs';
+import { taskActivity } from './lib/task-activity.mjs';
 import { skillCatalog } from './lib/skills.mjs';
 import { OfficeService } from './lib/office.mjs';
 import { handleOffice } from './lib/office-http.mjs';
@@ -554,8 +555,11 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
           current.tasks = (current.tasks || []).map(item => item.id === task.id ? { ...item, status: 'running', startedAt: new Date().toISOString(), finishedAt: null, message: '', revisionBefore: revision } : item);
           return documents;
         });
+        const stream = req.headers.accept === 'text/event-stream' ? openEventStream(res) : null;
+        const activity = (kind, data) => { if (kind === 'activity') stream?.event(kind, data); };
         try {
           // 章节存在性与锁定状态在调用模型之前判定；不通过就不消耗一次模型调用。
+          const phase = taskActivity(activity, '执行队列任务', { detail: task.title });
           let section = null;
           if (task.kind === 'chapter') {
             try { section = resolveTaskSection(document, task); }
@@ -565,17 +569,20 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
           if (task.kind === 'chapter' || task.kind === 'whole') {
             const sourceDocument = section ? scopedDocument(withProjectSources(document), section) : withProjectSources(document);
             const prompt = section ? chapterInstruction(section, task.instruction) : (task.instruction || '按文档简报与模板规范重写全文，保留已有事实与数据。');
-            const text = await runWritingTask(config, key, sourceDocument, { mode: 'write', prompt, chapterTitle: section?.title || '', documentId: id, revision }, { signal: requestAbort.signal, office, customTemplates: store.state.customTemplates || [] });
+            const text = await runWritingTask(config, key, sourceDocument, { mode: 'write', prompt, chapterTitle: section?.title || '', documentId: id, revision }, { signal: requestAbort.signal, onEvent: activity, office, customTemplates: store.state.customTemplates || [] });
             try { html = section ? applyChapterResult(document, section, text) : applyWholeResult(document, text); }
             catch (error) { throw new UserError(error.message, 422); }
             message = section ? `已写入《${section.title}》` : '已重写全文';
           } else if (task.kind === 'evidence' || task.kind === 'check') {
+            const check = taskActivity(activity, task.kind === 'check' ? '运行交付检查' : '核对正文依据');
             const scoped = withProjectSources(document);
             ledger = buildEvidenceLedger({ html: document.html, sources: scoped.sources, brief: document.brief || null });
             if (task.kind === 'check') report = runDeliveryCheck({ document: scoped, ledger });
             message = task.kind === 'check' ? `体检完成：${report.grade}` : `核出 ${ledger.summary.total} 条关键说法`;
+            check(report?.grade === 'blocked' || report?.grade === 'review' ? 'attention' : 'done');
           } else throw new UserError('不支持的任务类型。');
           let updated;
+          const saving = html ? taskActivity(activity, '保存已写入的正文') : null;
           await store.updateDocuments(documents => {
             const index = documents.findIndex(item => item.id === id);
             if (index < 0) throw new UserError('文档不存在。', 404);
@@ -592,7 +599,11 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
             return documents;
           });
           const map = sectionMap(updated.html);
-          return send(200, { task: (updated.tasks || []).find(item => item.id === task.id), document: updated, sections: map.sections, level: map.level, remaining: (updated.tasks || []).filter(item => item.status === 'queued').length });
+          saving?.('done');
+          phase('done');
+          const result = { task: (updated.tasks || []).find(item => item.id === task.id), document: updated, sections: map.sections, level: map.level, remaining: (updated.tasks || []).filter(item => item.status === 'queued').length };
+          if (stream) { stream.event('done', result); return; }
+          return send(200, result);
         } catch (error) {
           // 失败也必须落状态：任务停在 running 会让整条队列再也跑不动。
           await store.updateDocuments(documents => {
@@ -602,8 +613,9 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
             current.tasks = (current.tasks || []).map(item => item.id === task.id ? { ...item, status: conflict ? 'queued' : 'failed', finishedAt: new Date().toISOString(), message: String(error.message || '执行失败').slice(0, 500) } : item);
             return documents;
           }).catch(() => {});
+          if (stream) { stream.event('error', { message: error instanceof UserError ? error.message : '任务执行失败，请查看任务队列。' }); return; }
           throw error;
-        } finally { runningTasks.delete(guardKey); }
+        } finally { runningTasks.delete(guardKey); stream?.close(); }
       }
       // —— 项目知识空间 ——
       if (req.method === 'POST' && path === '/api/projects') {
@@ -740,7 +752,7 @@ export async function createApp({ dataDir = join(root, '.data'), port = Number(p
         const stream = openEventStream(res);
         try {
           const result = await runWritingTask(config, keyFor({}, config), withProjectSources(document), input, { signal: stream.signal, onEvent: stream.event, office, customTemplates: store.state.customTemplates || [] });
-          stream.event('done', { ok: true, fileTask: result?.fileTask === true });
+          stream.event('done', { ok: true, fileTask: result?.fileTask === true, ...(result?.reviewRequired ? { reviewRequired: true } : {}) });
         } catch (error) { stream.event('error', { message: error.message }); }
         finally { stream.close(); }
         return;

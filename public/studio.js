@@ -1,5 +1,6 @@
 import { language, t, uiHtml } from './i18n.js';
 import { escapeHtml as e } from './editor.js';
+import { createActivityTimeline, responseEvents } from './task-activity.js';
 
 // 写作工作台：章节结构、任务队列、项目资料、批量审计与任务配方。
 // 这里只做呈现与编排；章节解析、任务执行、审计结论都在服务端完成，前端不重复判断。
@@ -37,8 +38,10 @@ let selectedProjectId = null;
 let projectMatches = null;
 let selectedIds = new Set();
 let busy = false;
+let activityTimeline;
 
 const doc = () => app?.state.doc;
+const scope = document => JSON.stringify([app.getOwner(), document.id]);
 
 function setBadge(id, text, tone = '') {
   const node = $(id);
@@ -62,6 +65,7 @@ function reset() {
   const paper = $('paper-scroll');
   if (paper && $('quality-view')?.hidden !== false) paper.hidden = false;
   $('studio-content')?.replaceChildren();
+  activityTimeline?.show(null);
   selectedIds = new Set();
   projectMatches = null;
   refreshBadge();
@@ -347,6 +351,7 @@ function render() {
     button.classList.toggle('selected', active);
     button.setAttribute('aria-selected', String(active));
   });
+  activityTimeline.show(tab === 'chapters' && doc() ? scope(doc()) : null);
   if (tab === 'chapters') renderChapters();
   else if (tab === 'projects') renderProjects();
   else if (tab === 'audit') renderAudit();
@@ -360,19 +365,40 @@ async function reload() {
 
 // —— 操作 ——
 
+async function executeTask(document, taskId, activity) {
+  const response = await app.api(`/api/documents/${document.id}/tasks/run`, {
+    method: 'POST', accept: 'text/event-stream', raw: true,
+    body: { revision: document.revision, providerId: app.state.activeProviderId, taskId }
+  });
+  let result;
+  for await (const { kind, data } of responseEvents(response.body)) {
+    if (kind === 'activity') activity.update(data);
+    if (kind === 'done') result = data;
+    if (kind === 'error') throw new Error(t(data.message));
+  }
+  if (!result) throw new Error(t('任务连接提前结束，请查看队列状态。'));
+  if (doc() === document && result.document) {
+    app.applyDocument(result.document);
+    tasks = result.document.tasks || tasks;
+    sections = result.sections || sections;
+  }
+  return result;
+}
+
 async function runTask(taskId) {
   if (busy) { app.toast(t('已有任务在执行，请稍候。')); return; }
   const current = doc();
   if (!current) return;
   busy = true;
   setBadge('studio-state', t('运行中'), 'warn');
+  const activity = activityTimeline.start(scope(current));
+  activity.record('提交队列任务');
   try {
-    const result = await app.api(`/api/documents/${current.id}/tasks/run`, { method: 'POST', body: { revision: current.revision, providerId: app.state.activeProviderId, taskId } });
-    if (result.document) app.applyDocument(result.document);
-    tasks = result.document?.tasks || tasks;
-    sections = result.sections || sections;
+    const result = await executeTask(current, taskId, activity);
+    activity.finish('done');
     app.toast(result.task?.message || t('任务已完成'));
   } catch (error) {
+    activity.finish('failed');
     app.toast(error.message, true);
   } finally {
     busy = false;
@@ -382,22 +408,26 @@ async function runTask(taskId) {
 
 async function runAll() {
   if (busy) { app.toast(t('已有任务在执行，请稍候。')); return; }
+  const current = doc();
+  if (!current) return;
   busy = true;
   let done = 0;
+  let activity;
   try {
     for (let step = 0; step < 20; step++) {
-      const next = (doc()?.tasks || []).find(task => task.status === 'queued');
+      if (doc() !== current) break;
+      const next = (current.tasks || []).find(task => task.status === 'queued');
       if (!next) break;
-      const current = doc();
-      const result = await app.api(`/api/documents/${current.id}/tasks/run`, { method: 'POST', body: { revision: current.revision, providerId: app.state.activeProviderId, taskId: next.id } });
-      if (result.document) app.applyDocument(result.document);
-      tasks = result.document?.tasks || tasks;
-      sections = result.sections || sections;
+      activity ||= activityTimeline.start(scope(current));
+      activity.record('提交队列任务', 'notice', { detail: next.title });
+      const result = await executeTask(current, next.id, activity);
       if (result.task?.status !== 'done') break;
       done++;
     }
+    activity?.finish(doc() === current ? 'done' : 'stopped');
     app.toast(done ? t`已执行 ${done} 个任务` : t('队列里没有待执行的任务'));
   } catch (error) {
+    activity?.finish('failed');
     app.toast(error.message, true);
   } finally {
     busy = false;
@@ -737,6 +767,7 @@ function bind() {
 
 export function initStudio(options) {
   app = options;
+  activityTimeline = createActivityTimeline($('studio-activity'));
   bind();
   return { open, reset, refreshBadge, get busy() { return busy; } };
 }

@@ -51,6 +51,12 @@ test('模型自主组合技能、调整工具失败并交付 Word，文件权限
     const events=[];const config=validateProvider({name:'自主模型',model:'fixture',protocol,baseUrl});
     const result=await runOfficeAgent(config,'',office,{prompt:'根据资料生成 Word 文件',files:[source]},{onEvent:(kind,data)=>events.push({kind,data})});
     assert.equal(result.checks[0].status,'passed');assert.ok(events.some(event=>event.kind==='delta'));
+    const activity = events.filter(event => event.kind === 'activity').map(event => event.data);
+    assert.ok(activity.some(step => step.tool === 'read_file' && step.status === 'failed'));
+    assert.ok(activity.some(step => step.tool === 'read_file' && step.status === 'done' && step.files.includes('依据.txt')));
+    assert.ok(activity.some(step => step.tool === 'write_docx' && step.status === 'done' && step.outputs.includes(`auto-${protocol === 'responses'}.docx`)));
+    assert.ok(activity.some(step => step.label === 'DOCX 交付检查' && step.status === 'done'));
+    assert.doesNotMatch(JSON.stringify(activity), /未选中|unselected-secret-content|预算 100 元/);
     const history=protocol==='responses'?requests.at(-1).input:requests.at(-1).messages;
     assert.ok(history[0].content.includes('任务技能：资料归纳'));assert.ok(history[0].content.includes('任务技能：报告撰写'));
     assert.ok(JSON.stringify(history).includes('只能读取本次选中的资料'));assert.ok(!JSON.stringify(history).includes('unselected-secret-content'));
@@ -71,6 +77,7 @@ test('主写作入口由模型自主移交实际文件任务，返回下载产�
   for(const protocol of ['chat','responses']){
     const events=[];const result=await runWritingTask(validateProvider({name:'自主',model:'fixture',protocol,baseUrl}),'',{title:'预算',html:'<p>预算为100元</p>',sources:[]},{mode:'write',prompt:'把当前正文生成可下载的 Word 文件'},{office,onEvent:(kind,data)=>events.push({kind,data})});
     assert.equal(result.fileTask,true);
+    assert.ok(events.some(event => event.kind === 'activity' && event.data.label === '移交文件生成任务'));
     assert.ok(events.findIndex(event=>event.kind==='delivery'&&event.data.fileTask) >= 0);
     assert.ok(events.findIndex(event=>event.kind==='delivery') < events.findIndex(event=>event.kind==='delta'), '文件移交必须先于文字输出，避免文件摘要覆盖正文');
     assert.ok(events.some(event=>event.kind==='files'&&event.data.files.some(file=>file.id.endsWith('.docx'))));

@@ -1,17 +1,13 @@
 import { language, t, uiHtml } from './i18n.js';
 import {escapeHtml as e,markdownToHtml} from './editor.js';
+import { createActivityTimeline, officeToolLabel, responseEvents } from './task-activity.js';
 const $ = id=>document.getElementById(id);
 const icon = name=>`<svg aria-hidden="true"><use href="/icon.svg#${name}"/></svg>`;
-const labels = {read_docx:t('读取 Word'),write_docx:t('生成 Word'),edit_docx:t('编辑 Word'),read_xlsx:t('读取 Excel'),write_xlsx:t('生成 Excel'),edit_xlsx:t('编辑 Excel'),read_pptx:t('读取 PPT'),write_pptx:t('生成 PPT'),write_pptx_design:t('生成设计版 PPT'),edit_pptx:t('编辑 PPT'),pdf_info:t('PDF 信息'),pdf_extract_text:t('提取 PDF 文本'),pdf_render_pages:t('预览 PDF 页面'),pdf_apply_modifications:t('批量修改 PDF'),pdf_save:t('保存 PDF 修改'),pdf_manual_replace_text:t('替换 PDF 区域文字'),pdf_redact:t('遮盖 PDF 区域'),pdf_highlight_area:t('高亮 PDF 区域'),pdf_deyellow:t('扫描件去黄底'),pdf_add_text:t('给 PDF 添加文字'),list_directory:t('浏览文件库'),read_file:t('读取文本'),write_file:t('写入文本'),edit_file:t('替换文本'),file_info:t('文件信息'),create_directory:t('创建文件夹'),move_file:t('移动文件'),delete_file:t('删除文件'),read_image:t('查看图片')};
 const group = name=>/docx/.test(name)?'word':/xlsx/.test(name)?'excel':/pptx/.test(name)?'ppt':name.startsWith('pdf_')?'pdf':'files';
-labels.check_docx = t('DOCX 交付检查');
-labels.search_sources = t('资料检索与引用定位');
-labels.inspect_document = t('定位文档原文');
-labels.edit_document = t('精确修改并核对文档');
-labels.ocr_document = t('识别扫描件与图片文字');
 
-export function initOffice({api,toast,showModal,createDocument,addSource,getContext,beforeAgent,openSettings}) {
+export function initOffice({api,toast,showModal,createDocument,addSource,getContext,getOwner,beforeAgent,openSettings}) {
   let files=[],tools=[],selected=new Set(),agentController=null,busy=false,review=null,uncertainTask=false;
+  const activityTimeline = createActivityTimeline($('office-activity'));
   const size = bytes=>bytes>=1000000?`${(bytes/1000000).toFixed(1)} MB`:`${Math.max(1,Math.round(bytes/1000))} KB`;
   const fileURL = (id,inline=false)=>`/api/office/file?id=${encodeURIComponent(id)}${inline?'&inline=1':''}`;
   const fileDate = new Intl.DateTimeFormat(language, {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
@@ -57,9 +53,10 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
   function renderTools() {
     const category=$('office-tool-category').value;
     $('office-tool-count').textContent=tools.length;
-    $('office-tool-grid').innerHTML=tools.filter(tool=>category==='all'||group(tool.name)===category).map(tool=>`<button class="office-tool-card" data-office-tool="${e(tool.name)}"><span>${icon(group(tool.name)==='files'?'folder':'doc')}</span><div><strong>${e(labels[tool.name]||tool.name)}</strong><small>${e(tool.name)}</small><p>${e((tool.description||'').split('\n')[0].slice(0,110))}</p></div>${icon('chevron')}</button>`).join('');
+    $('office-tool-grid').innerHTML=tools.filter(tool=>category==='all'||group(tool.name)===category).map(tool=>`<button class="office-tool-card" data-office-tool="${e(tool.name)}"><span>${icon(group(tool.name)==='files'?'folder':'doc')}</span><div><strong>${e(officeToolLabel(tool.name))}</strong><small>${e(tool.name)}</small><p>${e((tool.description||'').split('\n')[0].slice(0,110))}</p></div>${icon('chevron')}</button>`).join('');
   }
   async function show() {
+    activityTimeline.show(getOwner());
     try {
       $('office-engine-status').textContent=t('正在准备文件处理…');
       const [status,library]=await Promise.all([api('/api/office/status'),api('/api/office/files')]);
@@ -91,7 +88,7 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
   }
   function showTool(toolName){
     const tool=tools.find(item=>item.name===toolName);if(!tool)return;
-    showModal('OFFICE TOOL / '+toolName,uiHtml`<h2>${e(labels[toolName]||toolName)}</h2><p class="modal-description">${e((tool.description||'').split('\n')[0])}</p><label class="office-parameters-label">工具参数（JSON）<textarea id="office-tool-arguments" rows="10" spellcheck="false">${e(JSON.stringify(parameters(tool),null,2))}</textarea></label><details class="office-schema"><summary>查看完整参数说明</summary><pre>${e(tool.description)}\n\n${e(JSON.stringify(tool.inputSchema,null,2))}</pre></details><p class="office-parameter-note">路径相对于文件库，文件 ID 可在下方列表选择后自动带入。PDF 修改后需运行「保存 PDF 修改」。</p><div id="office-call-error" class="inline-error" role="alert" hidden></div><button id="office-call-run" class="primary full-width">运行工具${icon('arrow')}</button>`);
+    showModal('OFFICE TOOL / '+toolName,uiHtml`<h2>${e(officeToolLabel(toolName))}</h2><p class="modal-description">${e((tool.description||'').split('\n')[0])}</p><label class="office-parameters-label">工具参数（JSON）<textarea id="office-tool-arguments" rows="10" spellcheck="false">${e(JSON.stringify(parameters(tool),null,2))}</textarea></label><details class="office-schema"><summary>查看完整参数说明</summary><pre>${e(tool.description)}\n\n${e(JSON.stringify(tool.inputSchema,null,2))}</pre></details><p class="office-parameter-note">路径相对于文件库，文件 ID 可在下方列表选择后自动带入。PDF 修改后需运行「保存 PDF 修改」。</p><div id="office-call-error" class="inline-error" role="alert" hidden></div><button id="office-call-run" class="primary full-width">运行工具${icon('arrow')}</button>`);
     $('office-call-run').onclick=async()=>{
       const button=$('office-call-run');button.disabled=true;$('office-call-error').hidden=true;
       try{
@@ -105,7 +102,7 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
   function renderResult(name,result){
     $('office-tool-result').hidden=false;
     const previews=result.data?.previews || (Array.isArray(result.data)?result.data.filter(item=>item.image_path).map(item=>item.image_path):[]);
-    $('office-tool-result').innerHTML=uiHtml`<div class="office-result-title"><strong>${e(name==='check_docx'?t('文件检查'):labels[name]||name)} · 执行结果</strong><button class="text-button" id="office-result-close">收起</button></div>${name === 'check_docx' ? checkHtml(result.data) : ''}${(result.images||[]).slice(0,8).map(image=>uiHtml`<img class="office-preview-image" src="data:${e(image.mimeType)};base64,${e(image.data)}" alt="工具返回的图片预览">`).join('')}${previews.slice(0,8).map(path=>uiHtml`<img class="office-preview-image" src="${fileURL(path,true)}" alt="文件页面预览">`).join('')}${name==='check_docx'?'':`<pre>${e(typeof result.data==='string'?result.data:JSON.stringify(result.data,null,2))}</pre>`}`;
+    $('office-tool-result').innerHTML=uiHtml`<div class="office-result-title"><strong>${e(name==='check_docx'?t('文件检查'):officeToolLabel(name))} · 执行结果</strong><button class="text-button" id="office-result-close">收起</button></div>${name === 'check_docx' ? checkHtml(result.data) : ''}${(result.images||[]).slice(0,8).map(image=>uiHtml`<img class="office-preview-image" src="data:${e(image.mimeType)};base64,${e(image.data)}" alt="工具返回的图片预览">`).join('')}${previews.slice(0,8).map(path=>uiHtml`<img class="office-preview-image" src="${fileURL(path,true)}" alt="文件页面预览">`).join('')}${name==='check_docx'?'':`<pre>${e(typeof result.data==='string'?result.data:JSON.stringify(result.data,null,2))}</pre>`}`;
     $('office-result-close').onclick=()=>{$('office-tool-result').hidden=true;};
     if(name==='search_sources'){
       const data=result.data;
@@ -181,18 +178,39 @@ export function initOffice({api,toast,showModal,createDocument,addSource,getCont
     }
     review=null;$('office-review').hidden=true;$('office-review-run').hidden=true;$('office-consistency-run').hidden=true;
     busy=true;agentController=new AbortController();$('office-agent-run').hidden=true;$('office-agent-stop').hidden=false;$('office-agent-result').hidden=true;$('office-agent-log').innerHTML='';$('office-delivery-checks').innerHTML='';
+    const activity = activityTimeline.start(getOwner());
+    const submission = activity.record('提交文件处理任务', 'running');
+    if (reviewMode) activity.record('准备文件处理上下文', 'done', { files: files.filter(file => selected.has(file.id)).map(file => file.name) });
     const log=(text,error=false)=>{const line=document.createElement('div');line.textContent=text;if(error)line.className='failure';$('office-agent-log').replaceChildren(line);};
     let submitted = false;
     try{
       await beforeAgent();
       submitted = true;
       const response=await api('/api/office/agent',{method:'POST',raw:true,signal:agentController.signal,body:{providerId:context.providerId,prompt,files:[...selected],review:reviewMode,consistency:consistencyMode,documentId:context.documentId,includeDocument:!reviewMode&&$('office-include-document').checked}});
-      const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',doneEvent=false,reviewRequired=false;
-      try{while(true){const{value,done}=await reader.read();buffer+=done?decoder.decode():decoder.decode(value,{stream:true});let index;while((index=buffer.indexOf('\n\n'))>=0){const block=buffer.slice(0,index);buffer=buffer.slice(index+2);const kind=/^event: (.+)$/m.exec(block)?.[1],json=/^data: (.+)$/m.exec(block)?.[1];if(!kind||!json)continue;const data=JSON.parse(json);if(kind==='step')log(data.ok===false?'正在调整处理步骤…':data.tool==='check_docx'?'正在检查生成文件…':data.tool?'正在处理文件…':'正在分析需求…');if(kind==='review')renderReview(data);if(kind==='check')$('office-delivery-checks').insertAdjacentHTML('beforeend',checkHtml(data));if(kind==='files'){files=data.files;renderFiles();}if(kind==='delta'){$('office-agent-result').hidden=false;$('office-agent-result').innerHTML=markdownToHtml(data.text);}if(kind==='error')throw new Error(data.message);if(kind==='done'){doneEvent=true;reviewRequired=data.reviewRequired;}}if(done)break;}}finally{reader.releaseLock();}
+      submission('done');
+      let doneEvent=false,reviewRequired=false;
+      for await (const { kind, data } of responseEvents(response.body)) {
+        if(kind==='activity') activity.update(data);
+        if(kind==='step') {
+          log(t(data.ok===false?'正在调整处理步骤…':data.tool==='check_docx'?'正在检查生成文件…':data.tool?'正在处理文件…':'正在分析需求…'));
+          if(reviewMode && data.text) {
+            const text = Number.isInteger(data.locationsRead) ? t`正在读取检查范围（已读取 ${data.locationsRead} 个位置）…` : data.text;
+            activity.record(text, data.ok===false ? 'attention' : 'notice');
+          }
+        }
+        if(kind==='review')renderReview(data);
+        if(kind==='check')$('office-delivery-checks').insertAdjacentHTML('beforeend',checkHtml(data));
+        if(kind==='files'){files=data.files;renderFiles();}
+        if(kind==='delta'){$('office-agent-result').hidden=false;$('office-agent-result').innerHTML=markdownToHtml(data.text);}
+        if(kind==='error')throw new Error(data.message);
+        if(kind==='done'){doneEvent=true;reviewRequired=data.reviewRequired;}
+      }
       if(!doneEvent)throw new Error(t('连接提前结束，请检查文件库中已经生成的文件。'));log(consistencyMode?(review?.coverage.complete?'可提取文字检查完成，请审阅问题与依据。':'本次覆盖不完整，请查看检查范围。'):reviewMode?(review?'修改建议已生成，请逐条审阅后应用。':'未生成可应用的修改建议，请查看说明。'):reviewRequired?'处理已完成，交付检查中有待确认项。':'本次任务已完成。');
+      activity.finish(reviewRequired || (consistencyMode && !review?.coverage.complete) ? 'attention' : 'done');
     }catch(error){
       if (!reviewMode && submitted) uncertainTask = true;
       const message = error.name === 'AbortError' ? t('已停止后续步骤。已执行的文件操作会保留。') : error.message;
+      activity.finish(error.name === 'AbortError' ? 'stopped' : 'failed');
       log(uncertainTask && !reviewMode ? `${message} 再次点击运行时会先刷新文件库，供你核对已有产物。` : message, true);
     }
     finally{busy=false;if(review)$('office-review-apply').disabled=!$('office-review').querySelector('[data-review-operation]:checked');$('office-review-run').hidden=false;$('office-consistency-run').hidden=false;agentController=null;$('office-agent-run').hidden=false;$('office-agent-stop').hidden=true;const library=await api('/api/office/files').catch(()=>null);if(library){files=library.files;renderFiles();}}

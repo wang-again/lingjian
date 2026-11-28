@@ -5,6 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTestApp, listenHttp } from './fixtures/http.mjs';
+import { responseEvents } from '../public/task-activity.js';
 
 const temporary = async () => mkdtemp(join(tmpdir(), 'lingjian-studio-'));
 const MODEL_TEXT = '## 二、方案\n\n交付团队分三步推进。\n\n- 第一步\n- 第二步';
@@ -32,7 +33,7 @@ test('章节工作台、任务队列、项目空间、批量审计与配方的�
   const requests = [];
   const baseUrl = await mockModel(t, requests);
   let bootstrap = await (await fetch(`${app.url}/api/bootstrap`)).json();
-  const call = (path, method, body) => fetch(`${app.url}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Workspace-Token': bootstrap.token }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const call = (path, method, body, headers = {}) => fetch(`${app.url}${path}`, { method, headers: { 'Content-Type': 'application/json', 'X-Workspace-Token': bootstrap.token, ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const json = async (path, method, body) => { const response = await call(path, method, body); return { status: response.status, data: await response.json().catch(() => ({})) }; };
 
   const provider = await json('/api/providers', 'POST', { name: '验收模型', model: 'fixture', protocol: 'chat', baseUrl, apiKey: 'test' });
@@ -73,11 +74,18 @@ test('章节工作台、任务队列、项目空间、批量审计与配方的�
 
   // 解锁后执行：只改该章，其余章节逐字节不变
   await json(`/api/documents/${document.id}/locks`, 'PUT', { locks: {} });
-  const run = await json(`/api/documents/${document.id}/tasks/run`, 'POST', { revision: document.revision, providerId: provider.data.provider.id, taskId: lockedTask.id });
-  assert.equal(run.status, 200, JSON.stringify(run.data));
+  const response = await call(`/api/documents/${document.id}/tasks/run`, 'POST', { revision: document.revision, providerId: provider.data.provider.id, taskId: lockedTask.id }, { Accept: 'text/event-stream' });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /text\/event-stream/);
+  const events = await Array.fromAsync(responseEvents(response.body));
+  assert.equal(events[0].data.detail, '补全方案');
+  assert.ok(events.some(event => event.kind === 'activity' && event.data.label === '起草正文' && event.data.status === 'running'));
+  assert.ok(events.some(event => event.kind === 'activity' && event.data.label === '保存已写入的正文' && event.data.status === 'done'));
+  assert.equal(events.at(-1).kind, 'done');
+  const run = events.at(-1).data;
   const beforeRunRevision = document.revision;
-  document = run.data.document;
-  assert.equal(run.data.task.status, 'done');
+  document = run.document;
+  assert.equal(run.task.status, 'done');
   assert.ok(document.html.includes('<h2>二、方案</h2><p>交付团队分三步推进。</p>'));
   assert.ok(document.html.includes('本季度收入 120 万元'));
   assert.equal((document.html.match(/二、方案/g) || []).length, 1);

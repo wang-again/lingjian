@@ -37,7 +37,13 @@ test('润色、续写、大纲、审阅均单次请求开始流式输出，保�
     assert.equal(text, '改写正文'); assert.ok(JSON.stringify(requests.at(-1)).includes('已确认预算 100 元')); assert.ok(!JSON.stringify(requests.at(-1)).includes('hidden-source'));
     const history = requests.at(-1).messages || requests.at(-1).input;
     const context = JSON.parse(history[1].content); assert.equal(context.selectedText, mode === 'rewrite' ? '预算 100 元' : '');
-    assert.ok(!JSON.stringify(events.filter(item => item.kind === 'delta')).includes('private-thinking'));
+    const timeline = events.filter(item => item.kind === 'activity').map(item => item.data);
+    assert.deepEqual(timeline[0].files, ['依据.txt']);
+    assert.equal(timeline[0].label, '准备写作上下文');
+    assert.equal(timeline[1].status, 'running');
+    assert.equal(timeline.at(-1).id, timeline[1].id);
+    assert.equal(timeline.at(-1).status, 'done');
+    assert.doesNotMatch(JSON.stringify(events), /private-thinking|hidden-source|未启用|已确认预算/);
     if (protocol === 'chat') assert.equal(events.filter(item => item.kind === 'step' && item.data.phase === 'thinking').length, 1);
   }
 });
@@ -79,12 +85,20 @@ test('组合报告技能省掉确认请求，仍先生成提纲且兼容仅流�
   assert.ok(requests.at(-1).messages[0].content.includes('任务技能：资料归纳')); assert.ok(requests.at(-1).messages[0].content.includes('任务技能：报告撰写'));
   assert.ok(requests.at(-1).messages.some(message => message.role === 'assistant' && message.content.includes('提纲：预算依据')));
   assert.ok(events.filter(item => item.kind === 'delta').every(item => !item.data.text.includes('提纲：')));
+  const steps = events.filter(item => item.kind === 'activity').map(item => item.data);
+  assert.deepEqual(steps.filter(item => item.label === '加载平台技能').map(item => item.detail), ['资料归纳', '报告撰写']);
+  const outline = steps.findIndex(item => item.label === '整理资料依据与报告提纲' && item.status === 'done');
+  const drafting = steps.findIndex(item => item.label === '起草正文' && item.status === 'running');
+  assert.ok(outline >= 0 && outline < drafting);
 });
 
 test('准备失败不能被 ready 标记跳过，模型可以修正后继续', async t => {
   let rounds = 0;
   const { requests, config } = await model(t, (input, res) => input.tools ? skills(input, res, [++rounds === 1 ? '../invalid' : 'source-synthesis']) : draft(input, res));
-  assert.equal(await runWritingTask(config('chat'), '', document, { mode: 'write', prompt: '整理资料' }), '改写正文');
+  const events = [];
+  assert.equal(await runWritingTask(config('chat'), '', document, { mode: 'write', prompt: '整理资料' }, { onEvent: (kind, data) => events.push({ kind, data }) }), '改写正文');
   assert.equal(requests.length, 3);
   assert.ok(requests[1].messages.some(message => message.role === 'tool' && message.content.includes('只能加载')));
+  assert.ok(events.some(event => event.kind === 'activity' && event.data.status === 'failed'));
+  assert.ok(events.some(event => event.kind === 'activity' && event.data.status === 'done' && event.data.detail === '资料归纳'));
 });

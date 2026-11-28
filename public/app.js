@@ -9,6 +9,7 @@ import { initStudio } from './studio.js';
 import { captureFragment, fragmentIsCurrent, fragmentResultHtml } from './fragments.js';
 import { createRecoveryStore, sameDraftContent } from './recovery.js';
 import { initBackupUI } from './backup-ui.js';
+import { createActivityTimeline, responseEvents } from './task-activity.js';
 
 const $ = id => document.getElementById(id);
 const icon = name => `<svg aria-hidden="true"><use href="/icon.svg#${name}"/></svg>`;
@@ -20,6 +21,8 @@ const savingDocuments = new Set();
 const recovery = createRecoveryStore();
 let backupUI;
 const recoveryOwner = () => state.user?.id || 'local';
+let writingTimeline;
+const writingScope = doc => JSON.stringify([recoveryOwner(), doc.id]);
 function rememberDraft(doc, owner = recoveryOwner()) {
   const protectedDraft = recovery.save(owner, doc);
   backupUI?.updateCount();
@@ -38,9 +41,9 @@ function toast(message, error = false) {
   $('toast').textContent = message; $('toast').classList.toggle('error', error); $('toast').hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, error ? 6500 : 3200);
 }
-async function api(path, { method = 'GET', body, signal, raw = false } = {}) {
+async function api(path, { method = 'GET', body, signal, raw = false, accept } = {}) {
   const token = state.token;
-  const response = await fetch(path, { method, signal, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), 'X-Workspace-Token': token }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+  const response = await fetch(path, { method, signal, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(accept ? { Accept: accept } : {}), 'X-Workspace-Token': token }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const suffix = data.requestId ? t`（错误编号 ${data.requestId}，终端日志可查同一编号）` : '';
@@ -150,6 +153,7 @@ function renderCurrent() {
   clearFragment(); $('sent-fragment').hidden = true; $('selection-status').textContent = t('A4 文档 · 自由编辑');
   closeAiReport(); refreshAiControls();
   state.result = null; $('generation-result').hidden = true; $('assistant-welcome').hidden = false;
+  writingTimeline?.show(state.doc ? writingScope(state.doc) : null);
   qualityUI?.reset();
   studioUI?.reset();
   annotationUI?.close();
@@ -646,22 +650,6 @@ async function insertImage(file) {
   document.execCommand('insertHTML', false, `<img src="${src}" alt="${e(file.name || t('粘贴的图片'))}" draggable="false"><br>`); dirty();
 }
 
-async function* responseEvents(body) {
-  const reader = body.getReader(), decoder = new TextDecoder(); let buffer = '';
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
-      let index;
-      while ((index = buffer.indexOf('\n\n')) >= 0) {
-        const block = buffer.slice(0, index); buffer = buffer.slice(index + 2);
-        const kind = /^event: (.+)$/m.exec(block)?.[1], data = /^data: (.+)$/m.exec(block)?.[1];
-        if (kind && data) yield { kind, data: JSON.parse(data) };
-      }
-      if (done) break;
-    }
-  } finally { reader.releaseLock(); }
-}
 let busyControls = [];
 function setBusy(busy) {
   if (busy) {
@@ -712,6 +700,8 @@ async function generate() {
   setBusy(true); switchAssistant('writing'); closeAiReport();
   const result = {text:'', mode, selection, documentId:state.doc.id, complete:false, editId:crypto.randomUUID(), direct:['write','rewrite','continue'].includes(mode)};
   const doc = state.doc;
+  const activity = writingTimeline.start(writingScope(doc));
+  const submission = activity.record('提交写作任务', 'running');
   const live = result.direct ? createLiveEdit($('editor'), {mode,selection,documentId:doc.id}) : null;
   state.result = result; generationController = new AbortController();
   $('assistant-welcome').hidden = true; $('generation-result').hidden = false;
@@ -745,7 +735,9 @@ async function generate() {
   try {
     await flushSave();
     const response=await api('/api/generate',{method:'POST',signal:generationController.signal,raw:true,body:{providerId:state.activeProviderId,documentId:doc.id,revision:doc.revision,prompt,mode,outputLanguage:$('output-language').value,selection:mode==='rewrite'?selection.text:'',fragment:mode==='rewrite'?{rich:selection.rich,images:selection.images}:undefined}});
+    submission('done');
     for await (const event of responseEvents(response.body)) {
+      if(event.kind==='activity') activity.update(event.data);
       if(event.kind==='delivery')result.fileTask=event.data.fileTask===true;
       if(event.kind==='step') {
         waitingPhase=event.data.tool?t('正在处理文件…'):({prepare:t('正在分析要求…'),plan:t('正在整理结构…'),draft:t('正在生成正文…'),thinking:t('模型正在思考…')})[event.data.phase]||t('正在准备内容…');
@@ -766,7 +758,7 @@ async function generate() {
         $('result-files').hidden=!event.data.files.length;
         $('result-files').innerHTML=event.data.files.map(file=>`<a class="result-file-link" href="/api/office/file?id=${encodeURIComponent(file.id)}" download>${icon('download')}${e(file.name)}</a>`).join('');
       }
-      if(event.kind==='done'){result.complete=true;result.fileTask=event.data.fileTask===true;}
+      if(event.kind==='done'){result.complete=true;result.fileTask=event.data.fileTask===true;result.reviewRequired=event.data.reviewRequired===true;}
     }
     if(!result.complete)throw Error(t('连接提前结束，已保留接收到的进度。'));
     if(!result.fileTask&&!result.text.trim())throw Error(t('模型未返回可用内容，正文未改动。'));
@@ -777,8 +769,14 @@ async function generate() {
     $('result-error').hidden=false;
   } finally {
     clearInterval(waitingTimer);
+    let saved;
     try {
-      if(!result.saveFailed){ if(!result.complete)await publish(false); await checkpoint(result.complete?'complete':'interrupted'); }
+      if(!result.saveFailed){
+        if(!result.complete)await publish(false);
+        if(result.hasPreview && state.doc?.id===doc.id) saved = activity.record('保存已写入的正文', 'running');
+        await checkpoint(result.complete?'complete':'interrupted');
+        saved?.('done');
+      }
     } catch(error) {result.complete=false;result.failure=error;$('result-error').textContent=error.message;$('result-error').hidden=false;}
     live?.finish();
     if(result.saveFailed&&doc._pendingAiEdit)doc._pendingAiEdit.status='interrupted';
@@ -789,6 +787,9 @@ async function generate() {
     $('result-content').textContent=result.fileTask?t('文件任务不会覆盖当前正文。'):result.direct?t('正文区域显示完整修改，工具栏可撤回本轮修改。'):t('请在中间查看完整结果；返回正文不会丢失原文。');
     const timing=[firstResponseMs===null?'':t`首段响应 ${(firstResponseMs/1000).toFixed(1)} 秒`,t`总耗时 ${((performance.now()-started)/1000).toFixed(1)} 秒`].filter(Boolean).join(' · ');
     $('result-usage').textContent=[usageText,timing].filter(Boolean).join(' · ');
+    const outcome = result.complete ? (result.reviewRequired ? 'attention' : 'done')
+      : result.failure?.name === 'AbortError' && !result.saveFailed ? 'stopped' : 'failed';
+    activity.finish(outcome);
     clearFragment();
   }
 }
@@ -867,7 +868,7 @@ function exportModal() {
 
 function bindEvents() {
   narrowWorkspace = window.matchMedia('(max-width: 1100px)');
-  officeUI = initOffice({api,toast,showModal,createDocument,beforeAgent:flushSave,getContext:()=>({providerId:state.activeProviderId,documentId:state.doc?.id}),openSettings:()=>{setView('settings');fillProvider(activeProvider());},addSource:async source=>{
+  officeUI = initOffice({api,toast,showModal,createDocument,beforeAgent:flushSave,getOwner:recoveryOwner,getContext:()=>({providerId:state.activeProviderId,documentId:state.doc?.id}),openSettings:()=>{setView('settings');fillProvider(activeProvider());},addSource:async source=>{
     if (!state.doc) throw new Error(t('请先创建文档。'));
     if (state.doc.sources.length>=20 || source.text.length>300000 || state.doc.sources.reduce((sum,item)=>sum+item.text.length,source.text.length)>500000) throw new Error(t('参考资料超过数量或字符限制，请移除部分资料后重试。'));
     state.doc.sources.push({id:crypto.randomUUID(),...source,enabled:true});state.doc._dirty=true;await saveCurrent();renderSources();
@@ -1017,10 +1018,11 @@ async function openWorkspace(data) {
   const { notice, ...workspace } = data;
   Object.assign(state, workspace);
   if (!backupUI) {
+    writingTimeline = createActivityTimeline($('writing-activity'));
     adminUI = initAdmin({ api, toast, getUser: () => state.user });
     bindEvents();
     qualityUI = initQuality({ api, state, toast, showModal, flushSave, renderTemplates });
-    studioUI = initStudio({ api, state, toast, showModal, flushSave, applyDocument, selectDocument, renderDocuments });
+    studioUI = initStudio({ api, state, toast, showModal, flushSave, applyDocument, selectDocument, renderDocuments, getOwner: recoveryOwner });
     annotationUI = initAnnotations({
       api, state, toast, showModal, flushSave, narrow: () => narrowWorkspace.matches,
       revealEditor: () => {
@@ -1070,6 +1072,7 @@ function lockWorkspace(expired = false) {
   protectUnsaved();
   clearTimeout(saveTimer); generationController?.abort(); modelListController?.abort();
   state.token = ''; state.documents = []; state.providers = []; state.doc = null; state.busy = false; state.result = null; state.selection = null;
+  writingTimeline?.show(null);
   $('workspace-shell').hidden = true; $('account-menu').hidden = true; $('modal').close(); $('provider-form').reset(); $('editor').innerHTML = '';
   $('auth-panel').hidden = false; $('auth-password').value = '';
   if (expired) {
